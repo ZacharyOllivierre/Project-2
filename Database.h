@@ -1,7 +1,6 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-
 #include <iostream>
 #include <vector>
 #include <functional>
@@ -9,7 +8,12 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QString>
-using std::string, std::cout, std::vector, std::endl, std::function;
+
+using std::string;
+using std::cout;
+using std::vector;
+using std::endl;
+using std::function;
 
 struct mlbInfo
 {
@@ -24,9 +28,19 @@ struct mlbInfo
     string ballparkTypology{};
     string roofType{};
 
-    mlbInfo() : teamName(""), stadiumName(""), seatingCapacity(0), location(""), 
-                playingSurface(""), league(""), dateOpened(0), distanceToCenterField(""), 
-                ballparkTypology(""), roofType("") {};
+    mlbInfo()
+        : teamName(""),
+        stadiumName(""),
+        seatingCapacity(0),
+        location(""),
+        playingSurface(""),
+        league(""),
+        dateOpened(0),
+        distanceToCenterField(""),
+        ballparkTypology(""),
+        roofType("")
+    {
+    }
 };
 
 struct stadiumDistances
@@ -35,10 +49,15 @@ struct stadiumDistances
     string destinationStadium{};
     int    distance{};
 
-    stadiumDistances() : originatedStadium(""), destinationStadium(""), distance(0) {};
+    stadiumDistances()
+        : originatedStadium(""),
+        destinationStadium(""),
+        distance(0)
+    {
+    }
 };
 
-class Database 
+class Database
 {
 private:
     QSqlDatabase             mlb_info_db;
@@ -53,16 +72,28 @@ public:
     ~Database();
 
     template<typename T>
-    void InitVector(QSqlDatabase db, const QString& table_name, vector<T>& structVector, function<T(QSqlQuery& query)> func);
-    
+    void InitVector(QSqlDatabase db,
+                    const QString& table_name,
+                    vector<T>& structVector,
+                    function<T(QSqlQuery& query)> func)
+    {
+        QSqlQuery query(db);
+        query.prepare("SELECT * FROM " + table_name);
+        query.exec();
+
+        while (query.next())
+        {
+            structVector.push_back(func(query));
+        }
+    }
+
     template<typename T>
     int partition(vector<T>& arr, int low, int high, function<bool(const T&, const T&)> compare)
     {
         T pivot = arr[high];
-
         int i = low - 1;
 
-        for (int j = low; j <= high - 1; j++) 
+        for (int j = low; j <= high - 1; j++)
         {
             if (compare(arr[j], pivot))
             {
@@ -71,17 +102,16 @@ public:
             }
         }
 
-        std::swap(arr[i + 1], arr[high]);  
+        std::swap(arr[i + 1], arr[high]);
         return i + 1;
     }
-    
+
     template<typename T>
     void quickSort(vector<T>& arr, int low, int high, function<bool(const T&, const T&)> compare)
     {
-        if (low < high) 
+        if (low < high)
         {
             int pi = partition(arr, low, high, compare);
-        
             quickSort(arr, low, pi - 1, compare);
             quickSort(arr, pi + 1, high, compare);
         }
@@ -90,7 +120,10 @@ public:
     template<typename T>
     vector<T> SortVector(vector<T>& vec, function<bool(const T&, const T&)> compare)
     {
-        quickSort(vec, 0, vec.size() - 1, compare);
+        if (!vec.empty())
+        {
+            quickSort(vec, 0, static_cast<int>(vec.size()) - 1, compare);
+        }
         return vec;
     }
 
@@ -98,4 +131,4 @@ public:
     vector<stadiumDistances>& GetStadiumDistancesVector();
 };
 
-#endif  // FILENAME_H
+#endif

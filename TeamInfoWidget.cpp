@@ -1,16 +1,23 @@
 #include "TeamInfoWidget.h"
 
 /**
- * Constructor — builds the layout once on creation.
+ * Constructor
+ * Build the widget once.
  */
-TeamInfoWidget::TeamInfoWidget(QWidget* parent) : QWidget(parent) {
+TeamInfoWidget::TeamInfoWidget(SouvenirManager* manager, QWidget* parent)
+    : QWidget(parent), m_souvenirManager(manager)
+{
     buildLayout();
 }
 
 /**
- * Updates all labels and souvenir list for the given team.
+ * Update all labels for selected team.
  */
-void TeamInfoWidget::setTeam(const mlbInfo& team) {
+void TeamInfoWidget::setTeam(const mlbInfo& team)
+{
+    m_currentTeamName = team.teamName;
+    m_currentStadiumName = team.stadiumName;
+
     m_teamName->setText(QString::fromStdString(team.teamName));
     m_stadiumName->setText(QString::fromStdString(team.stadiumName));
     m_capacity->setText(QString::number(team.seatingCapacity));
@@ -22,113 +29,245 @@ void TeamInfoWidget::setTeam(const mlbInfo& team) {
     m_parkType->setText(QString::fromStdString(team.ballparkTypology));
     m_roof->setText(QString::fromStdString(team.roofType));
 
-    loadSouvenirs(getHardcodedSouvenirs(team.teamName));
+    m_currentSouvenirs = getHardcodedSouvenirs(team.teamName);
+    loadSouvenirs(m_currentSouvenirs);
 }
 
 /**
- * Builds the full right-panel layout.
- * Layout: detail card (header + info grid) stacked above souvenir card.
+ * Build full right-side UI.
  */
-void TeamInfoWidget::buildLayout() {
+void TeamInfoWidget::buildLayout()
+{
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(12);
     mainLayout->setContentsMargins(12, 12, 12, 12);
 
-    // ── Detail card ──
     QFrame* detailCard = new QFrame();
-    detailCard->setFrameShape(QFrame::StyledPanel);
     QVBoxLayout* detailLayout = new QVBoxLayout(detailCard);
-    detailLayout->setSpacing(10);
 
-    m_teamName = new QLabel("Select a team");
-    m_teamName->setStyleSheet("font-size: 18px; font-weight: bold;");
+    m_teamName = new QLabel("Select a Team");
+    m_teamName->setStyleSheet(
+        "font-size: 20px;"
+        "font-weight: bold;"
+        "color: white;"
+        );
 
     m_stadiumName = new QLabel("");
-    m_stadiumName->setStyleSheet("color: gray; font-size: 13px;");
+    m_stadiumName->setStyleSheet(
+        "font-size: 13px;"
+        "color: #cbd5e1;"
+        );
 
     detailLayout->addWidget(m_teamName);
     detailLayout->addWidget(m_stadiumName);
 
-    // Info grid — 3 columns x 3 rows
-    QGridLayout* infoGrid = new QGridLayout();
-    infoGrid->setSpacing(8);
+    QGridLayout* grid = new QGridLayout();
+    grid->setSpacing(8);
 
-    infoGrid->addWidget(makeInfoCell("Location",     m_location), 0, 0);
-    infoGrid->addWidget(makeInfoCell("League",       m_league),   0, 1);
-    infoGrid->addWidget(makeInfoCell("Capacity",     m_capacity), 0, 2);
-    infoGrid->addWidget(makeInfoCell("Opened",       m_opened),   1, 0);
-    infoGrid->addWidget(makeInfoCell("Surface",      m_surface),  1, 1);
-    infoGrid->addWidget(makeInfoCell("Center Field", m_center),   1, 2);
-    infoGrid->addWidget(makeInfoCell("Park Type",    m_parkType), 2, 0);
-    infoGrid->addWidget(makeInfoCell("Roof",         m_roof),     2, 1);
+    grid->addWidget(makeInfoCell("Location",     m_location), 0, 0);
+    grid->addWidget(makeInfoCell("League",       m_league),   0, 1);
+    grid->addWidget(makeInfoCell("Capacity",     m_capacity), 0, 2);
 
-    detailLayout->addLayout(infoGrid);
+    grid->addWidget(makeInfoCell("Opened",       m_opened),   1, 0);
+    grid->addWidget(makeInfoCell("Surface",      m_surface),  1, 1);
+    grid->addWidget(makeInfoCell("Center Field", m_center),   1, 2);
+
+    grid->addWidget(makeInfoCell("Park Type",    m_parkType), 2, 0);
+    grid->addWidget(makeInfoCell("Roof",         m_roof),     2, 1);
+
+    detailLayout->addLayout(grid);
     mainLayout->addWidget(detailCard);
 
-    // ── Souvenir card ──
     QFrame* souvenirCard = new QFrame();
-    souvenirCard->setFrameShape(QFrame::StyledPanel);
     QVBoxLayout* souvenirLayout = new QVBoxLayout(souvenirCard);
-    souvenirLayout->setSpacing(8);
 
     QLabel* souvenirTitle = new QLabel("Souvenirs");
-    souvenirTitle->setStyleSheet("font-size: 16px; font-weight: bold;");
-    souvenirLayout->addWidget(souvenirTitle);
+    souvenirTitle->setStyleSheet(
+        "font-size: 16px;"
+        "font-weight: bold;"
+        "color: white;"
+        );
 
     m_souvenirList = new QListWidget();
-    m_souvenirList->setStyleSheet("border: none;");
+
+    QHBoxLayout* controlsLayout = new QHBoxLayout();
+
+    QLabel* quantityLabel = new QLabel("Quantity:");
+    quantityLabel->setStyleSheet("color: white; font-weight: 600;");
+
+    m_quantitySpinBox = new QSpinBox();
+    m_quantitySpinBox->setMinimum(1);
+    m_quantitySpinBox->setMaximum(100);
+    m_quantitySpinBox->setValue(1);
+    m_quantitySpinBox->setStyleSheet(
+        "QSpinBox {"
+        "background-color: #1b2333;"
+        "color: white;"
+        "border: 1px solid #2f3b52;"
+        "border-radius: 6px;"
+        "padding: 4px;"
+        "}"
+        );
+
+    m_buyButton = new QPushButton("Buy Souvenir");
+    m_buyButton->setStyleSheet(
+        "QPushButton {"
+        "background-color: #2563eb;"
+        "color: white;"
+        "font-weight: 600;"
+        "border: 1px solid #3b82f6;"
+        "border-radius: 8px;"
+        "padding: 8px 14px;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: #3b82f6;"
+        "}"
+        "QPushButton:pressed {"
+        "background-color: #1d4ed8;"
+        "}"
+        );
+
+    controlsLayout->addWidget(quantityLabel);
+    controlsLayout->addWidget(m_quantitySpinBox);
+    controlsLayout->addStretch();
+    controlsLayout->addWidget(m_buyButton);
+
+    souvenirLayout->addWidget(souvenirTitle);
     souvenirLayout->addWidget(m_souvenirList);
+    souvenirLayout->addLayout(controlsLayout);
 
     mainLayout->addWidget(souvenirCard);
+
+    connect(m_buyButton, &QPushButton::clicked, this, [this]() {
+        buySelectedSouvenir();
+    });
 }
 
 /**
- * Creates a styled info cell with a muted label and bold value.
+ * Build one blue info box.
  */
-QFrame* TeamInfoWidget::makeInfoCell(const QString& label, QLabel*& valueLabel) {
+QFrame* TeamInfoWidget::makeInfoCell(const QString& label, QLabel*& valueLabel)
+{
     QFrame* cell = new QFrame();
-    cell->setFrameShape(QFrame::StyledPanel);
-    cell->setStyleSheet("background: #f5f5f5; border-radius: 6px; padding: 4px;");
 
-    QVBoxLayout* cellLayout = new QVBoxLayout(cell);
-    cellLayout->setSpacing(2);
+    cell->setStyleSheet(
+        "background-color: #2563eb;"
+        "border: 1px solid #3b82f6;"
+        "border-radius: 8px;"
+        "padding: 6px;"
+        );
+
+    QVBoxLayout* layout = new QVBoxLayout(cell);
+    layout->setSpacing(2);
 
     QLabel* fieldLabel = new QLabel(label);
-    fieldLabel->setStyleSheet("font-size: 11px; color: gray;");
+    fieldLabel->setStyleSheet(
+        "font-size: 11px;"
+        "color: #dbeafe;"
+        );
 
     valueLabel = new QLabel("—");
-    valueLabel->setStyleSheet("font-size: 13px; font-weight: 500;");
+    valueLabel->setStyleSheet(
+        "font-size: 13px;"
+        "font-weight: 600;"
+        "color: white;"
+        );
 
-    cellLayout->addWidget(fieldLabel);
-    cellLayout->addWidget(valueLabel);
+    layout->addWidget(fieldLabel);
+    layout->addWidget(valueLabel);
 
     return cell;
 }
 
 /**
- * Clears and repopulates the souvenir list.
- * SWAP: replace body with DB query when souvenir table is ready.
+ * Load souvenir list for current team.
  */
-void TeamInfoWidget::loadSouvenirs(const QList<SouvenirItem>& items) {
+void TeamInfoWidget::loadSouvenirs(const QList<SouvenirItem>& items)
+{
     m_souvenirList->clear();
-    for (const auto& item : items) {
+
+    for (const auto& item : items)
+    {
         QString row = QString("%1    $%2")
         .arg(item.name)
             .arg(item.price, 0, 'f', 2);
+
         m_souvenirList->addItem(row);
+    }
+
+    if (!items.isEmpty())
+    {
+        m_souvenirList->setCurrentRow(0);
     }
 }
 
 /**
- * TEMPORARY hardcoded souvenirs.
- * DELETE this function when souvenir DB table is implemented.
- * Replace with: query souvenirs table WHERE teamName == team.teamName
+ * Buy selected souvenir.
  */
-QList<SouvenirItem> TeamInfoWidget::getHardcodedSouvenirs(const std::string& teamName) {
+void TeamInfoWidget::buySelectedSouvenir()
+{
+    if (m_souvenirManager == nullptr)
+    {
+        return;
+    }
+
+    int row = m_souvenirList->currentRow();
+
+    if (row < 0 || row >= m_currentSouvenirs.size())
+    {
+        return;
+    }
+
+    if (m_currentStadiumName.empty())
+    {
+        return;
+    }
+
+    SouvenirItem selectedItem = m_currentSouvenirs[row];
+    int quantity = m_quantitySpinBox->value();
+
+    QString stadium = QString::fromStdString(m_currentStadiumName);
+
+    m_souvenirManager->buySouvenir(stadium, selectedItem, quantity);
+
+    emit cartUpdated();
+}
+
+/**
+ * Temporary souvenir data.
+ * Replace later with DB query.
+ */
+QList<SouvenirItem> TeamInfoWidget::getHardcodedSouvenirs(const std::string& teamName)
+{
+    QString team = QString::fromStdString(teamName);
+
+    if (team.contains("Dodgers", Qt::CaseInsensitive))
+    {
+        return {
+            {"Dodgers Cap", 19.99},
+            {"Baseball Bat", 89.39},
+            {"Team Pennant", 17.99},
+            {"Autographed Baseball", 29.99},
+            {"Team Jersey", 199.99}
+        };
+    }
+
+    if (team.contains("Yankees", Qt::CaseInsensitive))
+    {
+        return {
+            {"Yankees Cap", 21.99},
+            {"Baseball Bat", 89.39},
+            {"Team Pennant", 17.99},
+            {"Autographed Baseball", 34.99},
+            {"Team Jersey", 209.99}
+        };
+    }
+
     return {
-            {"Baseball",  10.99},
-            {"Hat",        7.99},
-            {"Jersey",    89.99},
-            {"Pennant",   14.99},
-            };
+        {"Baseball Cap", 19.99},
+        {"Baseball Bat", 89.39},
+        {"Team Pennant", 17.99},
+        {"Autographed Baseball", 29.99},
+        {"Team Jersey", 199.99}
+    };
 }

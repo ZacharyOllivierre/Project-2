@@ -3,9 +3,9 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <vector>
-#include "Database.h"
+#include "database.h"
 #include "souvenirmanager.h"
-#include "PurchaseWindow.h"
+#include "purchasewindow.h"
 
 class mainwindow : public QMainWindow
 {

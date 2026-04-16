@@ -13,16 +13,16 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Core)
 
 qt_add_executable(Project2
     main.cpp
-    Database.cpp
-    Database.h
+    database.cpp
+    database.h
     mainwindow.cpp
     mainwindow.h
-    TeamInfoWidget.cpp
-    TeamInfoWidget.h
+    teaminfowidget.cpp
+    teaminfowidget.h
     souvenirmanager.cpp
     souvenirmanager.h
-    PurchaseWindow.cpp
-    PurchaseWindow.h
+    purchasewindow.cpp
+    purchasewindow.h
 )
 
 target_link_libraries(Project2 PRIVATE

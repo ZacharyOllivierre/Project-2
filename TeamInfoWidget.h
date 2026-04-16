@@ -10,7 +10,7 @@
 #include <QString>
 #include <QPushButton>
 #include <QSpinBox>
-#include "Database.h"
+#include "database.h"
 #include "souvenirmanager.h"
 
 /**

@@ -1,4 +1,4 @@
-#include "PurchaseWindow.h"
+#include "purchasewindow.h"
 
 /**
  * Constructor

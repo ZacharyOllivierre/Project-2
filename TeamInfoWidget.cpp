@@ -1,4 +1,4 @@
-#include "TeamInfoWidget.h"
+#include "teaminfowidget.h"
 
 /**
  * Constructor

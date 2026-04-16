@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "TeamInfoWidget.h"
+#include "teaminfowidget.h"
 
 #include <QHBoxLayout>
 #include <QListWidget>

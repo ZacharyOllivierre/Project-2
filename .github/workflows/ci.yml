@@ -7,16 +7,28 @@ on:
       - ui-team
       - query-team
 
+  pull_request:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: jurplel/install-qt-action@v4
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
         with:
           version: '5.15.2'
 
-      - run: qmake Campus.pro
-      - run: make
+      - name: Check qmake
+        run: qmake --version
+
+      - name: Run qmake
+        run: qmake Campus.pro
+
+      - name: Build Project
+        run: make

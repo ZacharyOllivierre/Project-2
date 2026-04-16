@@ -19,8 +19,8 @@ qt_add_executable(Project2
     mainwindow.h
     TeamInfoWidget.cpp
     TeamInfoWidget.h
-    SouvenirManager.cpp
-    SouvenirManager.h
+    souvenirmanager.cpp
+    souvenirmanager.h
     PurchaseWindow.cpp
     PurchaseWindow.h
 )

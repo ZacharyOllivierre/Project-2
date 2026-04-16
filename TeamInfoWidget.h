@@ -11,7 +11,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include "Database.h"
-#include "SouvenirManager.h"
+#include "souvenirmanager.h"
 
 /**
  * TeamInfoWidget

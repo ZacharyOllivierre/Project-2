@@ -1,4 +1,4 @@
-build/ 
-*.o 
-Makefile 
-.clangd 
+build/
+CMakeCache.txt
+CMakeFiles/
+*.user

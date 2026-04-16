@@ -1,0 +1,13 @@
+# ninja log v6
+1	311	1776368241636824459	Project2_autogen/timestamp	6d04cddedf928df3
+1	311	1776368241636824459	Project2_autogen/mocs_compilation.cpp	6d04cddedf928df3
+1	311	1776368241636824459	/Users/cleru/Desktop/Project-2/build/Qt_6_10_2_for_macOS-Debug/Project2_autogen/timestamp	6d04cddedf928df3
+1	311	1776368241636824459	/Users/cleru/Desktop/Project-2/build/Qt_6_10_2_for_macOS-Debug/Project2_autogen/mocs_compilation.cpp	6d04cddedf928df3
+317	1128	1776368241655875618	CMakeFiles/Project2.dir/souvenirmanager.cpp.o	612134d26a2d6813
+314	1477	1776368241652649397	CMakeFiles/Project2.dir/database.cpp.o	47abd3fc5502999
+318	1529	1776368241656458078	CMakeFiles/Project2.dir/purchasewindow.cpp.o	6755003f0f2bfc3
+316	1568	1776368241654593863	CMakeFiles/Project2.dir/teaminfowidget.cpp.o	9ad864ee6710946f
+314	1576	1776368241652117395	CMakeFiles/Project2.dir/main.cpp.o	9f9fc00f53b2118c
+316	1606	1776368241654194819	CMakeFiles/Project2.dir/mainwindow.cpp.o	a627b1ffdfb04155
+313	1661	1776368241651556392	CMakeFiles/Project2.dir/Project2_autogen/mocs_compilation.cpp.o	6b4b689fc4067dba
+1661	1779	1776368242999874792	Project2	ba83ac4924c02000

@@ -1,12 +1,14 @@
 name: Qt C++ CI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
       - main
       - ui-team
       - query-team
-
   pull_request:
     branches:
       - main
@@ -16,19 +18,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
+          version: '6.10.0'
+          cache: true
 
-      - name: Check qmake
-        run: qmake --version
+      - name: Configure CMake
+        run: cmake -S . -B build
 
-      - name: Run qmake
-        run: qmake Campus.pro
-
-      - name: Build Project
-        run: make
+      - name: Build project
+        run: cmake --build build

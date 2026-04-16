@@ -1,0 +1,22 @@
+name: Qt C++ CI
+
+on:
+  push:
+    branches:
+      - main
+      - ui-team
+      - query-team
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+
+      - run: qmake Campus.pro
+      - run: make

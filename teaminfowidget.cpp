@@ -4,8 +4,9 @@
  * Constructor
  * Build the widget once.
  */
-TeamInfoWidget::TeamInfoWidget(SouvenirManager* manager, QWidget* parent)
-    : QWidget(parent), m_souvenirManager(manager)
+TeamInfoWidget::TeamInfoWidget(SouvenirManager *manager, QWidget *parent)
+    : QWidget(parent)
+    , m_souvenirManager(manager)
 {
     buildLayout();
 }
@@ -13,7 +14,7 @@ TeamInfoWidget::TeamInfoWidget(SouvenirManager* manager, QWidget* parent)
 /**
  * Update all labels for selected team.
  */
-void TeamInfoWidget::setTeam(const mlbInfo& team)
+void TeamInfoWidget::setTeam(const mlbInfo &team)
 {
     m_currentTeamName = team.teamName;
     m_currentStadiumName = team.stadiumName;
@@ -38,94 +39,84 @@ void TeamInfoWidget::setTeam(const mlbInfo& team)
  */
 void TeamInfoWidget::buildLayout()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(12);
     mainLayout->setContentsMargins(12, 12, 12, 12);
 
-    QFrame* detailCard = new QFrame();
-    QVBoxLayout* detailLayout = new QVBoxLayout(detailCard);
+    QFrame *detailCard = new QFrame();
+    QVBoxLayout *detailLayout = new QVBoxLayout(detailCard);
 
     m_teamName = new QLabel("Select a Team");
-    m_teamName->setStyleSheet(
-        "font-size: 20px;"
-        "font-weight: bold;"
-        "color: white;"
-        );
+    m_teamName->setStyleSheet("font-size: 20px;"
+                              "font-weight: bold;"
+                              "color: white;");
 
     m_stadiumName = new QLabel("");
-    m_stadiumName->setStyleSheet(
-        "font-size: 13px;"
-        "color: #cbd5e1;"
-        );
+    m_stadiumName->setStyleSheet("font-size: 13px;"
+                                 "color: #cbd5e1;");
 
     detailLayout->addWidget(m_teamName);
     detailLayout->addWidget(m_stadiumName);
 
-    QGridLayout* grid = new QGridLayout();
+    QGridLayout *grid = new QGridLayout();
     grid->setSpacing(8);
 
-    grid->addWidget(makeInfoCell("Location",     m_location), 0, 0);
-    grid->addWidget(makeInfoCell("League",       m_league),   0, 1);
-    grid->addWidget(makeInfoCell("Capacity",     m_capacity), 0, 2);
+    grid->addWidget(makeInfoCell("Location", m_location), 0, 0);
+    grid->addWidget(makeInfoCell("League", m_league), 0, 1);
+    grid->addWidget(makeInfoCell("Capacity", m_capacity), 0, 2);
 
-    grid->addWidget(makeInfoCell("Opened",       m_opened),   1, 0);
-    grid->addWidget(makeInfoCell("Surface",      m_surface),  1, 1);
-    grid->addWidget(makeInfoCell("Center Field", m_center),   1, 2);
+    grid->addWidget(makeInfoCell("Opened", m_opened), 1, 0);
+    grid->addWidget(makeInfoCell("Surface", m_surface), 1, 1);
+    grid->addWidget(makeInfoCell("Center Field", m_center), 1, 2);
 
-    grid->addWidget(makeInfoCell("Park Type",    m_parkType), 2, 0);
-    grid->addWidget(makeInfoCell("Roof",         m_roof),     2, 1);
+    grid->addWidget(makeInfoCell("Park Type", m_parkType), 2, 0);
+    grid->addWidget(makeInfoCell("Roof", m_roof), 2, 1);
 
     detailLayout->addLayout(grid);
     mainLayout->addWidget(detailCard);
 
-    QFrame* souvenirCard = new QFrame();
-    QVBoxLayout* souvenirLayout = new QVBoxLayout(souvenirCard);
+    QFrame *souvenirCard = new QFrame();
+    QVBoxLayout *souvenirLayout = new QVBoxLayout(souvenirCard);
 
-    QLabel* souvenirTitle = new QLabel("Souvenirs");
-    souvenirTitle->setStyleSheet(
-        "font-size: 16px;"
-        "font-weight: bold;"
-        "color: white;"
-        );
+    QLabel *souvenirTitle = new QLabel("Souvenirs");
+    souvenirTitle->setStyleSheet("font-size: 16px;"
+                                 "font-weight: bold;"
+                                 "color: white;");
 
     m_souvenirList = new QListWidget();
 
-    QHBoxLayout* controlsLayout = new QHBoxLayout();
+    QHBoxLayout *controlsLayout = new QHBoxLayout();
 
-    QLabel* quantityLabel = new QLabel("Quantity:");
+    QLabel *quantityLabel = new QLabel("Quantity:");
     quantityLabel->setStyleSheet("color: white; font-weight: 600;");
 
     m_quantitySpinBox = new QSpinBox();
     m_quantitySpinBox->setMinimum(1);
     m_quantitySpinBox->setMaximum(100);
     m_quantitySpinBox->setValue(1);
-    m_quantitySpinBox->setStyleSheet(
-        "QSpinBox {"
-        "background-color: #1b2333;"
-        "color: white;"
-        "border: 1px solid #2f3b52;"
-        "border-radius: 6px;"
-        "padding: 4px;"
-        "}"
-        );
+    m_quantitySpinBox->setStyleSheet("QSpinBox {"
+                                     "background-color: #1b2333;"
+                                     "color: white;"
+                                     "border: 1px solid #2f3b52;"
+                                     "border-radius: 6px;"
+                                     "padding: 4px;"
+                                     "}");
 
     m_buyButton = new QPushButton("Buy Souvenir");
-    m_buyButton->setStyleSheet(
-        "QPushButton {"
-        "background-color: #2563eb;"
-        "color: white;"
-        "font-weight: 600;"
-        "border: 1px solid #3b82f6;"
-        "border-radius: 8px;"
-        "padding: 8px 14px;"
-        "}"
-        "QPushButton:hover {"
-        "background-color: #3b82f6;"
-        "}"
-        "QPushButton:pressed {"
-        "background-color: #1d4ed8;"
-        "}"
-        );
+    m_buyButton->setStyleSheet("QPushButton {"
+                               "background-color: #2563eb;"
+                               "color: white;"
+                               "font-weight: 600;"
+                               "border: 1px solid #3b82f6;"
+                               "border-radius: 8px;"
+                               "padding: 8px 14px;"
+                               "}"
+                               "QPushButton:hover {"
+                               "background-color: #3b82f6;"
+                               "}"
+                               "QPushButton:pressed {"
+                               "background-color: #1d4ed8;"
+                               "}");
 
     controlsLayout->addWidget(quantityLabel);
     controlsLayout->addWidget(m_quantitySpinBox);
@@ -138,40 +129,32 @@ void TeamInfoWidget::buildLayout()
 
     mainLayout->addWidget(souvenirCard);
 
-    connect(m_buyButton, &QPushButton::clicked, this, [this]() {
-        buySelectedSouvenir();
-    });
+    connect(m_buyButton, &QPushButton::clicked, this, [this]() { buySelectedSouvenir(); });
 }
 
 /**
  * Build one blue info box.
  */
-QFrame* TeamInfoWidget::makeInfoCell(const QString& label, QLabel*& valueLabel)
+QFrame *TeamInfoWidget::makeInfoCell(const QString &label, QLabel *&valueLabel)
 {
-    QFrame* cell = new QFrame();
+    QFrame *cell = new QFrame();
 
-    cell->setStyleSheet(
-        "background-color: #2563eb;"
-        "border: 1px solid #3b82f6;"
-        "border-radius: 8px;"
-        "padding: 6px;"
-        );
+    cell->setStyleSheet("background-color: #2563eb;"
+                        "border: 1px solid #3b82f6;"
+                        "border-radius: 8px;"
+                        "padding: 6px;");
 
-    QVBoxLayout* layout = new QVBoxLayout(cell);
+    QVBoxLayout *layout = new QVBoxLayout(cell);
     layout->setSpacing(2);
 
-    QLabel* fieldLabel = new QLabel(label);
-    fieldLabel->setStyleSheet(
-        "font-size: 11px;"
-        "color: #dbeafe;"
-        );
+    QLabel *fieldLabel = new QLabel(label);
+    fieldLabel->setStyleSheet("font-size: 11px;"
+                              "color: #dbeafe;");
 
     valueLabel = new QLabel("—");
-    valueLabel->setStyleSheet(
-        "font-size: 13px;"
-        "font-weight: 600;"
-        "color: white;"
-        );
+    valueLabel->setStyleSheet("font-size: 13px;"
+                              "font-weight: 600;"
+                              "color: white;");
 
     layout->addWidget(fieldLabel);
     layout->addWidget(valueLabel);
@@ -182,21 +165,17 @@ QFrame* TeamInfoWidget::makeInfoCell(const QString& label, QLabel*& valueLabel)
 /**
  * Load souvenir list for current team.
  */
-void TeamInfoWidget::loadSouvenirs(const QList<SouvenirItem>& items)
+void TeamInfoWidget::loadSouvenirs(const QList<SouvenirItem> &items)
 {
     m_souvenirList->clear();
 
-    for (const auto& item : items)
-    {
-        QString row = QString("%1    $%2")
-        .arg(item.name)
-            .arg(item.price, 0, 'f', 2);
+    for (const auto &item : items) {
+        QString row = QString("%1    $%2").arg(item.name).arg(item.price, 0, 'f', 2);
 
         m_souvenirList->addItem(row);
     }
 
-    if (!items.isEmpty())
-    {
+    if (!items.isEmpty()) {
         m_souvenirList->setCurrentRow(0);
     }
 }
@@ -206,20 +185,17 @@ void TeamInfoWidget::loadSouvenirs(const QList<SouvenirItem>& items)
  */
 void TeamInfoWidget::buySelectedSouvenir()
 {
-    if (m_souvenirManager == nullptr)
-    {
+    if (m_souvenirManager == nullptr) {
         return;
     }
 
     int row = m_souvenirList->currentRow();
 
-    if (row < 0 || row >= m_currentSouvenirs.size())
-    {
+    if (row < 0 || row >= m_currentSouvenirs.size()) {
         return;
     }
 
-    if (m_currentStadiumName.empty())
-    {
+    if (m_currentStadiumName.empty()) {
         return;
     }
 
@@ -237,37 +213,29 @@ void TeamInfoWidget::buySelectedSouvenir()
  * Temporary souvenir data.
  * Replace later with DB query.
  */
-QList<SouvenirItem> TeamInfoWidget::getHardcodedSouvenirs(const std::string& teamName)
+QList<SouvenirItem> TeamInfoWidget::getHardcodedSouvenirs(const std::string &teamName)
 {
     QString team = QString::fromStdString(teamName);
 
-    if (team.contains("Dodgers", Qt::CaseInsensitive))
-    {
-        return {
-            {"Dodgers Cap", 19.99},
+    if (team.contains("Dodgers", Qt::CaseInsensitive)) {
+        return {{"Dodgers Cap", 19.99},
+                {"Baseball Bat", 89.39},
+                {"Team Pennant", 17.99},
+                {"Autographed Baseball", 29.99},
+                {"Team Jersey", 199.99}};
+    }
+
+    if (team.contains("Yankees", Qt::CaseInsensitive)) {
+        return {{"Yankees Cap", 21.99},
+                {"Baseball Bat", 89.39},
+                {"Team Pennant", 17.99},
+                {"Autographed Baseball", 34.99},
+                {"Team Jersey", 209.99}};
+    }
+
+    return {{"Baseball Cap", 19.99},
             {"Baseball Bat", 89.39},
             {"Team Pennant", 17.99},
             {"Autographed Baseball", 29.99},
-            {"Team Jersey", 199.99}
-        };
-    }
-
-    if (team.contains("Yankees", Qt::CaseInsensitive))
-    {
-        return {
-            {"Yankees Cap", 21.99},
-            {"Baseball Bat", 89.39},
-            {"Team Pennant", 17.99},
-            {"Autographed Baseball", 34.99},
-            {"Team Jersey", 209.99}
-        };
-    }
-
-    return {
-        {"Baseball Cap", 19.99},
-        {"Baseball Bat", 89.39},
-        {"Team Pennant", 17.99},
-        {"Autographed Baseball", 29.99},
-        {"Team Jersey", 199.99}
-    };
+            {"Team Jersey", 199.99}};
 }

@@ -21,47 +21,39 @@ void Database::OpenDB()
     QStringList mlbPaths;
     QStringList distPaths;
 
-    mlbPaths
-        << "databases/mlb_info.db"
-        << "../databases/mlb_info.db"
-        << "../../databases/mlb_info.db"
-        << "../../../databases/mlb_info.db";
+    mlbPaths << "databases/mlb_info.db"
+             << "../databases/mlb_info.db"
+             << "../../databases/mlb_info.db"
+             << "../../../databases/mlb_info.db";
 
-    distPaths
-        << "databases/stadium_distances.db"
-        << "../databases/stadium_distances.db"
-        << "../../databases/stadium_distances.db"
-        << "../../../databases/stadium_distances.db";
+    distPaths << "databases/stadium_distances.db"
+              << "../databases/stadium_distances.db"
+              << "../../databases/stadium_distances.db"
+              << "../../../databases/stadium_distances.db";
 
     QString mlbPath;
     QString distPath;
 
-    for (const QString& path : mlbPaths)
-    {
-        if (QFileInfo::exists(path))
-        {
+    for (const QString &path : mlbPaths) {
+        if (QFileInfo::exists(path)) {
             mlbPath = QFileInfo(path).absoluteFilePath();
             break;
         }
     }
 
-    for (const QString& path : distPaths)
-    {
-        if (QFileInfo::exists(path))
-        {
+    for (const QString &path : distPaths) {
+        if (QFileInfo::exists(path)) {
             distPath = QFileInfo(path).absoluteFilePath();
             break;
         }
     }
 
-    if (mlbPath.isEmpty())
-    {
+    if (mlbPath.isEmpty()) {
         cout << "[ERROR] Could not find mlb_info.db\n";
         return;
     }
 
-    if (distPath.isEmpty())
-    {
+    if (distPath.isEmpty()) {
         cout << "[ERROR] Could not find stadium_distances.db\n";
         return;
     }
@@ -69,58 +61,47 @@ void Database::OpenDB()
     mlb_info_db.setDatabaseName(mlbPath);
     stadium_distances_db.setDatabaseName(distPath);
 
-    if (!mlb_info_db.open())
-    {
+    if (!mlb_info_db.open()) {
         cout << "[ERROR] mlb_info.db FAILED TO OPEN\n";
         return;
     }
 
-    if (!stadium_distances_db.open())
-    {
+    if (!stadium_distances_db.open()) {
         cout << "[ERROR] stadium_distances.db FAILED TO OPEN\n";
         return;
     }
 
     cout << "[SUCCESS] Databases opened successfully\n";
 
-    auto fillMlbInfo = [](QSqlQuery& query) -> mlbInfo
-    {
+    auto fillMlbInfo = [](QSqlQuery &query) -> mlbInfo {
         mlbInfo info;
-        info.teamName              = query.value(0).toString().toStdString();
-        info.stadiumName           = query.value(1).toString().toStdString();
-        info.seatingCapacity       = query.value(2).toString().remove(',').toInt();
-        info.location              = query.value(3).toString().toStdString();
-        info.playingSurface        = query.value(4).toString().toStdString();
-        info.league                = query.value(5).toString().toStdString();
-        info.dateOpened            = query.value(6).toInt();
+        info.teamName = query.value(0).toString().toStdString();
+        info.stadiumName = query.value(1).toString().toStdString();
+        info.seatingCapacity = query.value(2).toString().remove(',').toInt();
+        info.location = query.value(3).toString().toStdString();
+        info.playingSurface = query.value(4).toString().toStdString();
+        info.league = query.value(5).toString().toStdString();
+        info.dateOpened = query.value(6).toInt();
         info.distanceToCenterField = query.value(7).toString().toStdString();
-        info.ballparkTypology      = query.value(8).toString().toStdString();
-        info.roofType              = query.value(9).toString().toStdString();
+        info.ballparkTypology = query.value(8).toString().toStdString();
+        info.roofType = query.value(9).toString().toStdString();
         return info;
     };
 
-    auto fillDistances = [](QSqlQuery& query) -> stadiumDistances
-    {
+    auto fillDistances = [](QSqlQuery &query) -> stadiumDistances {
         stadiumDistances info;
-        info.originatedStadium  = query.value(0).toString().toStdString();
+        info.originatedStadium = query.value(0).toString().toStdString();
         info.destinationStadium = query.value(1).toString().toStdString();
-        info.distance           = query.value(2).toInt();
+        info.distance = query.value(2).toInt();
         return info;
     };
 
-    InitVector(
-        mlb_info_db,
-        "mlb_info",
-        mlbInfoVector,
-        function<mlbInfo(QSqlQuery&)>(fillMlbInfo)
-        );
+    InitVector(mlb_info_db, "mlb_info", mlbInfoVector, function<mlbInfo(QSqlQuery &)>(fillMlbInfo));
 
-    InitVector(
-        stadium_distances_db,
-        "stadium_distances",
-        stadiumDistancesVector,
-        function<stadiumDistances(QSqlQuery&)>(fillDistances)
-        );
+    InitVector(stadium_distances_db,
+               "stadium_distances",
+               stadiumDistancesVector,
+               function<stadiumDistances(QSqlQuery &)>(fillDistances));
 
     cout << "[INFO] Loaded teams: " << mlbInfoVector.size() << endl;
 }
@@ -134,12 +115,12 @@ void Database::CloseDB()
         stadium_distances_db.close();
 }
 
-vector<mlbInfo>& Database::GetMlbInfoVector()
+vector<mlbInfo> &Database::GetMlbInfoVector()
 {
     return mlbInfoVector;
 }
 
-vector<stadiumDistances>& Database::GetStadiumDistancesVector()
+vector<stadiumDistances> &Database::GetStadiumDistancesVector()
 {
     return stadiumDistancesVector;
 }

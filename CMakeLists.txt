@@ -23,6 +23,7 @@ qt_add_executable(Project2
     souvenirmanager.h
     purchasewindow.cpp
     purchasewindow.h
+    browsewidget.h browsewidget.cpp browsewidget.ui
 )
 
 target_link_libraries(Project2 PRIVATE

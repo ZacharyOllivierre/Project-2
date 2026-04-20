@@ -11,7 +11,7 @@
  * Constructor
  * Build the main window shell.
  */
-mainwindow::mainwindow(QWidget* parent)
+mainwindow::mainwindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("MLB Planner");
@@ -27,55 +27,49 @@ void mainwindow::updateCartNotification()
 {
     int count = m_souvenirManager.getTotalItemCount();
 
-    if (m_viewPurchasesButton != nullptr)
-    {
-        m_viewPurchasesButton->setText(
-            QString("View Purchase Screen (Cart: %1)").arg(count)
-            );
+    if (m_viewPurchasesButton != nullptr) {
+        m_viewPurchasesButton->setText(QString("View Purchase Screen (Cart: %1)").arg(count));
     }
 }
 
 /**
  * Load team data into the UI.
  */
-void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
+void mainwindow::loadTeams(const std::vector<mlbInfo> &teams)
 {
-    QWidget* central = new QWidget(this);
-    QHBoxLayout* layout = new QHBoxLayout(central);
+    QWidget *central = new QWidget(this);
+    QHBoxLayout *layout = new QHBoxLayout(central);
     layout->setSpacing(12);
     layout->setContentsMargins(12, 12, 12, 12);
 
     // -------------------------
     // Left side
     // -------------------------
-    QWidget* leftPanel = new QWidget();
-    QVBoxLayout* leftLayout = new QVBoxLayout(leftPanel);
+    QWidget *leftPanel = new QWidget();
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
 
     m_viewPurchasesButton = new QPushButton();
-    m_viewPurchasesButton->setStyleSheet(
-        "QPushButton {"
-        "background-color: #2563eb;"
-        "color: white;"
-        "font-weight: 600;"
-        "border: 1px solid #3b82f6;"
-        "border-radius: 8px;"
-        "padding: 8px 14px;"
-        "}"
-        "QPushButton:hover {"
-        "background-color: #3b82f6;"
-        "}"
-        "QPushButton:pressed {"
-        "background-color: #1d4ed8;"
-        "}"
-        );
+    m_viewPurchasesButton->setStyleSheet("QPushButton {"
+                                         "background-color: #2563eb;"
+                                         "color: white;"
+                                         "font-weight: 600;"
+                                         "border: 1px solid #3b82f6;"
+                                         "border-radius: 8px;"
+                                         "padding: 8px 14px;"
+                                         "}"
+                                         "QPushButton:hover {"
+                                         "background-color: #3b82f6;"
+                                         "}"
+                                         "QPushButton:pressed {"
+                                         "background-color: #1d4ed8;"
+                                         "}");
 
     updateCartNotification();
 
-    QListWidget* teamList = new QListWidget();
+    QListWidget *teamList = new QListWidget();
     teamList->setMaximumWidth(240);
 
-    for (const auto& team : teams)
-    {
+    for (const auto &team : teams) {
         teamList->addItem(QString::fromStdString(team.teamName));
     }
 
@@ -85,40 +79,29 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
     // -------------------------
     // Right side
     // -------------------------
-    TeamInfoWidget* teamInfo = new TeamInfoWidget(&m_souvenirManager);
+    TeamInfoWidget *teamInfo = new TeamInfoWidget(&m_souvenirManager);
 
-    if (!teams.empty())
-    {
+    if (!teams.empty()) {
         teamInfo->setTeam(teams[0]);
         teamList->setCurrentRow(0);
     }
 
-    connect(teamList, &QListWidget::currentRowChanged, this,
-            [teamInfo, teams](int row)
-            {
-                if (row >= 0 && row < static_cast<int>(teams.size()))
-                {
-                    teamInfo->setTeam(teams[row]);
-                }
-            });
+    connect(teamList, &QListWidget::currentRowChanged, this, [teamInfo, teams](int row) {
+        if (row >= 0 && row < static_cast<int>(teams.size())) {
+            teamInfo->setTeam(teams[row]);
+        }
+    });
 
-    connect(m_viewPurchasesButton, &QPushButton::clicked, this,
-            [this]()
-            {
-                if (m_purchaseWindow != nullptr)
-                {
-                    m_purchaseWindow->refreshScreen();
-                    m_purchaseWindow->show();
-                    m_purchaseWindow->raise();
-                    m_purchaseWindow->activateWindow();
-                }
-            });
+    connect(m_viewPurchasesButton, &QPushButton::clicked, this, [this]() {
+        if (m_purchaseWindow != nullptr) {
+            m_purchaseWindow->refreshScreen();
+            m_purchaseWindow->show();
+            m_purchaseWindow->raise();
+            m_purchaseWindow->activateWindow();
+        }
+    });
 
-    connect(teamInfo, &TeamInfoWidget::cartUpdated, this,
-            [this]()
-            {
-                updateCartNotification();
-            });
+    connect(teamInfo, &TeamInfoWidget::cartUpdated, this, [this]() { updateCartNotification(); });
 
     layout->addWidget(leftPanel);
     layout->addWidget(teamInfo, 1);

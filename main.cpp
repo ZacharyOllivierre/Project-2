@@ -1,6 +1,9 @@
 #include "database.h"
 #include "mainwindow.h"
 
+// Temp
+#include "browsewidget.h"
+
 #include <QApplication>
 #include <functional>
 #include <iostream>
@@ -56,19 +59,18 @@ int main(int argc, char *argv[])
     Database db;
     db.OpenDB();
 
-    auto byCap = [](const mlbInfo& a, const mlbInfo& b) -> bool
-    {
+    auto byCap = [](const mlbInfo &a, const mlbInfo &b) -> bool {
         return a.seatingCapacity < b.seatingCapacity;
     };
 
-    db.SortVector(
-        db.GetMlbInfoVector(),
-        function<bool(const mlbInfo&, const mlbInfo&)>(byCap)
-        );
+    db.SortVector(db.GetMlbInfoVector(), function<bool(const mlbInfo &, const mlbInfo &)>(byCap));
 
     mainwindow w;
     w.loadTeams(db.GetMlbInfoVector());
     w.show();
+
+    BrowseWidget* browse = new BrowseWidget(db.GetMlbInfoVector());
+    browse->show();
 
     return app.exec();
 }

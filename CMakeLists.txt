@@ -24,6 +24,7 @@ qt_add_executable(Project2
     purchasewindow.cpp
     purchasewindow.h
     browsewidget.h browsewidget.cpp browsewidget.ui
+    graphvisualizer.h graphvisualizer.cpp
 )
 
 target_link_libraries(Project2 PRIVATE

@@ -20,13 +20,24 @@ BrowseWidget::BrowseWidget(const vector<mlbInfo>& teams, QWidget *parent)
     // Set default sort type
     sortType = SortType::TeamName;
 
-    // init combo boxes
+    // init combo boxes - prevent signals for combo box changed while intiiallizing
+    ui->leagueTypeCombo->blockSignals(true);
+    ui->roofTypeCombo->blockSignals(true);
+    ui->sortTypeCombo->blockSignals(true);
+
     initLeagueTypeCombo();
     initRoofTypeCombo();
     initSortTypeCombo();
 
+    ui->leagueTypeCombo->blockSignals(false);
+    ui->roofTypeCombo->blockSignals(false);
+    ui->sortTypeCombo->blockSignals(false);
+
     // init table
     initTable();
+
+    // populate table
+    populateTable();
 }
 
 BrowseWidget::~BrowseWidget()

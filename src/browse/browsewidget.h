@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "database.h"
+#include "../database/database.h"
 
 using std::set;
 using std::string;

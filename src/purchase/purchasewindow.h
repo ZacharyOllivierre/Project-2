@@ -4,7 +4,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QVBoxLayout>
-#include "souvenirmanager.h"
+#include "../souvenir/souvenirmanager.h"
 
 /**
  * PurchaseWindow

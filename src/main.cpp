@@ -1,8 +1,6 @@
-#include "database.h"
-#include "mainwindow.h"
-
-// Temp
-#include "browsewidget.h"
+#include "database/database.h"
+#include "mainwindow/mainwindow.h"
+#include "browse/browsewidget.h"
 
 #include <QApplication>
 #include <functional>

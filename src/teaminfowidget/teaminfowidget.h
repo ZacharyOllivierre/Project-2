@@ -10,8 +10,8 @@
 #include <QString>
 #include <QVBoxLayout>
 #include <QWidget>
-#include "database.h"
-#include "souvenirmanager.h"
+#include "../database/database.h"
+#include "../souvenir/souvenirmanager.h"
 
 /**
  * TeamInfoWidget

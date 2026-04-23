@@ -8,18 +8,18 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Core)
 qt_add_executable(Project2
     src/main.cpp
-    src/database.cpp
-    src/database.h
-    src/mainwindow.cpp
-    src/mainwindow.h
-    src/teaminfowidget.cpp
-    src/teaminfowidget.h
-    src/souvenirmanager.cpp
-    src/souvenirmanager.h
-    src/purchasewindow.cpp
-    src/purchasewindow.h
-    src/browsewidget.h src/browsewidget.cpp src/browsewidget.ui
-    src/graphvisualizer.h src/graphvisualizer.cpp
+    src/database/database.cpp
+    src/database/database.h
+    src/mainwindow/mainwindow.cpp
+    src/mainwindow/mainwindow.h
+    src/teaminfowidget/teaminfowidget.cpp
+    src/teaminfowidget/teaminfowidget.h
+    src/souvenir/souvenirmanager.cpp
+    src/souvenir/souvenirmanager.h
+    src/purchase/purchasewindow.cpp
+    src/purchase/purchasewindow.h
+    src/browse/browsewidget.h src/browse/browsewidget.cpp src/browse/browsewidget.ui
+    src/graph/graphvisualizer.h src/graph/graphvisualizer.cpp
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

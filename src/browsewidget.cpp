@@ -1,4 +1,4 @@
-#include "browseWidget.h"
+#include "browsewidget.h"
 #include "ui_browsewidget.h"
 
 BrowseWidget::BrowseWidget(const vector<mlbInfo>& teams, QWidget *parent)

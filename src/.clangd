@@ -1,6 +1,0 @@
-CompileFlags:
-  Add:
-    - -std=c++17
-    - -iframework/opt/homebrew/Cellar/qt/6.11.0/lib
-    - -I/opt/homebrew/Cellar/qt/6.11.0/lib/QtSql.framework/Headers
-    - -I/opt/homebrew/Cellar/qt/6.11.0/lib/QtCore.framework/Headers

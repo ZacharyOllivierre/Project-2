@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Hub</class>
+ <widget class="QWidget" name="Hub">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>793</width>
+    <height>627</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QPushButton" name="buttonTeamBrowse">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>410</y>
+     <width>171</width>
+     <height>91</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Team Browse</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonTeamBrowse</sender>
+   <signal>clicked()</signal>
+   <receiver>Hub</receiver>
+   <slot>toBrowseWidget()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>211</x>
+     <y>284</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>217</x>
+     <y>350</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>toBrowseWidget()</slot>
+ </slots>
+</ui>

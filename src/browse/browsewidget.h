@@ -37,12 +37,15 @@ public:
 
     inline void updateTeams(const vector<mlbInfo>& teams) {mInfo = teams;}
 
+
 private slots:
     void on_leagueTypeCombo_currentIndexChanged(int index);
 
     void on_roofTypeCombo_currentIndexChanged(int index);
 
     void on_sortTypeCombo_currentIndexChanged(int index);
+
+    void toHub();
 
 private:
     Ui::BrowseWidget *ui;

@@ -1,4 +1,5 @@
 #include "database/database.h"
+#include "hub/hub.h"
 #include "mainwindow/mainwindow.h"
 #include "browse/browsewidget.h"
 
@@ -67,8 +68,12 @@ int main(int argc, char *argv[])
     w.loadTeams(db.GetMlbInfoVector());
     w.show();
 
-    BrowseWidget* browse = new BrowseWidget(db.GetMlbInfoVector());
-    browse->show();
+    //BrowseWidget* browse = new BrowseWidget(db.GetMlbInfoVector());
+    //browse->show();
+
+    Hub h;
+    h.show();
+
 
     return app.exec();
 }

@@ -66,11 +66,38 @@
       <item>
        <widget class="QTableWidget" name="table"/>
       </item>
+      <item>
+       <widget class="QPushButton" name="buttonHub">
+        <property name="text">
+         <string>Hub</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>buttonHub</sender>
+   <signal>clicked()</signal>
+   <receiver>BrowseWidget</receiver>
+   <slot>toHub()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>347</x>
+     <y>550</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>4</x>
+     <y>543</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>toHub()</slot>
+ </slots>
 </ui>

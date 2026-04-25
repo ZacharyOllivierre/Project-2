@@ -1,110 +1,225 @@
 #include "mainwindow.h"
 #include "../teaminfowidget/teaminfowidget.h"
+#include "../admin/adminwidget.h"
+#include "../browse/browsewidget.h"
 
 #include <QHBoxLayout>
-#include <QListWidget>
-#include <QPushButton>
 #include <QVBoxLayout>
+#include <QPushButton>
+#include <QLabel>
 #include <QWidget>
 
-/**
- * Constructor
- * Build the main window shell.
- */
 mainwindow::mainwindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("MLB Planner");
-    resize(1100, 700);
+    resize(1200, 750);
+    setStyleSheet("QMainWindow { background:#0d1c2e; }");
+}
 
+void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
+{
+    m_db = db;
     m_purchaseWindow = new PurchaseWindow(&m_souvenirManager, this);
-}
 
-/**
- * Update the cart count on the button.
- */
-void mainwindow::updateCartNotification()
-{
-    int count = m_souvenirManager.getTotalItemCount();
-
-    if (m_viewPurchasesButton != nullptr) {
-        m_viewPurchasesButton->setText(QString("View Purchase Screen (Cart: %1)").arg(count));
-    }
-}
-
-/**
- * Load team data into the UI.
- */
-void mainwindow::loadTeams(const std::vector<mlbInfo> &teams)
-{
     QWidget *central = new QWidget(this);
-    QHBoxLayout *layout = new QHBoxLayout(central);
-    layout->setSpacing(12);
-    layout->setContentsMargins(12, 12, 12, 12);
+    central->setObjectName("centralWidget");
+    central->setStyleSheet("background:#0d1c2e;");
+    QHBoxLayout *root = new QHBoxLayout(central);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
+    setCentralWidget(central);
 
-    // -------------------------
-    // Left side
-    // -------------------------
-    QWidget *leftPanel = new QWidget();
-    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
+    root->addWidget(buildSidebar());
 
-    m_viewPurchasesButton = new QPushButton();
-    m_viewPurchasesButton->setStyleSheet("QPushButton {"
-                                         "background-color: #2563eb;"
-                                         "color: white;"
-                                         "font-weight: 600;"
-                                         "border: 1px solid #3b82f6;"
-                                         "border-radius: 8px;"
-                                         "padding: 8px 14px;"
-                                         "}"
-                                         "QPushButton:hover {"
-                                         "background-color: #3b82f6;"
-                                         "}"
-                                         "QPushButton:pressed {"
-                                         "background-color: #1d4ed8;"
-                                         "}");
+    m_stack = new QStackedWidget;
+    m_stack->setStyleSheet("QStackedWidget { background:#0d1c2e; }");
 
-    updateCartNotification();
+    // Page 0 — Home (blank — someone else owns this content)
+    m_homePage = new QWidget;
+    m_homePage->setStyleSheet("background:#0d1c2e;");
+    m_stack->addWidget(m_homePage);
 
-    QListWidget *teamList = new QListWidget();
-    teamList->setMaximumWidth(240);
+    // Page 1 — Team Info
+    m_teamInfoPage = new TeamInfoWidget(&m_souvenirManager, m_db);
+    if (!teams.empty())
+        m_teamInfoPage->setTeam(teams[0]);
+    connect(m_teamInfoPage, &TeamInfoWidget::cartUpdated,
+            this, &mainwindow::updateCartNotification);
+    m_stack->addWidget(m_teamInfoPage);
 
-    for (const auto &team : teams) {
-        teamList->addItem(QString::fromStdString(team.teamName));
-    }
+    // Page 2 — Browse
+    m_browsePage = new BrowseWidget(teams);
+    m_browsePage->hide();   // prevent it auto-showing before user navigates to it
+    m_stack->addWidget(m_browsePage);
 
-    leftLayout->addWidget(m_viewPurchasesButton);
-    leftLayout->addWidget(teamList);
+    // Page 3 — Plan a Trip placeholder
+    auto *tripPage = new QWidget;
+    tripPage->setStyleSheet("background:#0d1c2e;");
+    m_stack->addWidget(tripPage);
 
-    // -------------------------
-    // Right side
-    // -------------------------
-    TeamInfoWidget *teamInfo = new TeamInfoWidget(&m_souvenirManager);
+    // Page 4 — Admin
+    m_adminPage = new AdminWidget(m_db, this);
+    m_adminPage->refresh();
+    connect(m_adminPage, &AdminWidget::souvenirDataChanged,
+            m_teamInfoPage, &TeamInfoWidget::reloadSouvenirs);
+    m_stack->addWidget(m_adminPage);
 
-    if (!teams.empty()) {
-        teamInfo->setTeam(teams[0]);
-        teamList->setCurrentRow(0);
-    }
+    root->addWidget(m_stack, 1);
 
-    connect(teamList, &QListWidget::currentRowChanged, this, [teamInfo, teams](int row) {
-        if (row >= 0 && row < static_cast<int>(teams.size())) {
-            teamInfo->setTeam(teams[row]);
-        }
-    });
+    // Default to Home — Browse won't appear until user clicks it
+    setActivePage(m_homePage, m_navHome);
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+
+QWidget* mainwindow::buildSidebar()
+{
+    QWidget *sidebar = new QWidget;
+    sidebar->setFixedWidth(200);
+    // Sidebar is one tone lighter than page bg — it visually "sits in front"
+    sidebar->setStyleSheet("background:#111f33;");
+
+    QVBoxLayout *lay = new QVBoxLayout(sidebar);
+    lay->setContentsMargins(0, 0, 0, 0);
+    lay->setSpacing(0);
+
+    // Logo — lightest strip, topmost layer
+    QWidget *logo = new QWidget;
+    logo->setFixedHeight(52);
+    // border:none on every element — prevents Qt from drawing a default focus/widget border
+    logo->setStyleSheet("QWidget { background:#162035; border:none; }");
+    QVBoxLayout *logoLay = new QVBoxLayout(logo);
+    logoLay->setContentsMargins(14, 0, 14, 0);
+    QLabel *logoTitle = new QLabel("⚾  MLB Planner");
+    logoTitle->setStyleSheet("color:#ffffff; font-size:14px; font-weight:700; background:transparent; border:none;");
+    logoLay->addWidget(logoTitle);
+    lay->addWidget(logo);
+
+    // Cart button — actionable, near-white text
+    m_viewPurchasesButton = new QPushButton("View Purchase Screen (Cart: 0)");
+    m_viewPurchasesButton->setStyleSheet(
+        "QPushButton{"
+        "  background:#1a3a60;"
+        "  color:#d0e8ff;"
+        "  border:none;"
+        "  border-bottom:1px solid #1a2d45;"
+        "  padding:9px 14px;"
+        "  font-size:11px;"
+        "  font-weight:600;"
+        "  text-align:left;"
+        "}"
+        "QPushButton:hover{ background:#1e4470; color:#ffffff; }");
+    m_viewPurchasesButton->setCursor(Qt::PointingHandCursor);
     connect(m_viewPurchasesButton, &QPushButton::clicked, this, [this]() {
-        if (m_purchaseWindow != nullptr) {
+        if (m_purchaseWindow) {
             m_purchaseWindow->refreshScreen();
             m_purchaseWindow->show();
             m_purchaseWindow->raise();
             m_purchaseWindow->activateWindow();
         }
     });
+    lay->addWidget(m_viewPurchasesButton);
 
-    connect(teamInfo, &TeamInfoWidget::cartUpdated, this, [this]() { updateCartNotification(); });
+    // Section label — very dark, recedes, just a structural divider
+    auto addSection = [&](const QString &label) {
+        QLabel *sec = new QLabel(label.toUpper());
+        sec->setStyleSheet(
+            "color:#2e4d6a;"
+            "font-size:10px;"
+            "letter-spacing:1.2px;"
+            "padding:12px 14px 3px;");
+        lay->addWidget(sec);
+    };
 
-    layout->addWidget(leftPanel);
-    layout->addWidget(teamInfo, 1);
+    m_navHome     = new QPushButton("  Home");
+    m_navTeamInfo = new QPushButton("  Team Info");
+    m_navBrowse   = new QPushButton("  Browse");
+    m_navPlanTrip = new QPushButton("  Plan a Trip");
+    m_navAdmin    = new QPushButton("  Manage Data");
 
-    setCentralWidget(central);
+    addSection("Main");
+    styleNavBtn(m_navHome);
+    lay->addWidget(m_navHome);
+
+    addSection("Stadiums");
+    styleNavBtn(m_navTeamInfo);
+    styleNavBtn(m_navBrowse);
+    lay->addWidget(m_navTeamInfo);
+    lay->addWidget(m_navBrowse);
+
+    addSection("Trip Planner");
+    styleNavBtn(m_navPlanTrip);
+    lay->addWidget(m_navPlanTrip);
+
+    addSection("Admin");
+    styleNavBtn(m_navAdmin);
+    lay->addWidget(m_navAdmin);
+
+    lay->addStretch();
+
+    connect(m_navHome,     &QPushButton::clicked, this, [this]{ setActivePage(m_homePage,         m_navHome); });
+    connect(m_navTeamInfo, &QPushButton::clicked, this, [this]{ setActivePage(m_teamInfoPage,     m_navTeamInfo); });
+    connect(m_navBrowse,   &QPushButton::clicked, this, [this]{ setActivePage(m_browsePage,       m_navBrowse); });
+    connect(m_navPlanTrip, &QPushButton::clicked, this, [this]{ setActivePage(m_stack->widget(3), m_navPlanTrip); });
+    connect(m_navAdmin,    &QPushButton::clicked, this, [this]{ setActivePage(m_adminPage,        m_navAdmin); });
+
+    return sidebar;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+void mainwindow::setActivePage(QWidget *page, QPushButton *activeBtn)
+{
+    if (!page || !m_stack) return;
+    m_stack->setCurrentWidget(page);
+    for (auto *btn : {m_navHome, m_navTeamInfo, m_navBrowse, m_navPlanTrip, m_navAdmin})
+        styleNavBtn(btn, btn == activeBtn);
+}
+
+void mainwindow::styleNavBtn(QPushButton *btn, bool active)
+{
+    if (active) {
+        // Active item: white text, subtle lighter bg, blue left accent strip
+        btn->setStyleSheet(
+            "QPushButton{"
+            "  background:#162a45;"
+            "  color:#ffffff;"
+            "  border:none;"
+            "  border-left:2px solid #4a9ade;"
+            "  padding:8px 14px;"
+            "  font-size:12px;"
+            "  text-align:left;"
+            "}"
+            "QPushButton:hover{ background:#162a45; }");
+    } else {
+        // Inactive: muted mid-blue text, transparent, recedes into sidebar
+        btn->setStyleSheet(
+            "QPushButton{"
+            "  background:transparent;"
+            "  color:#5a80a0;"
+            "  border:none;"
+            "  border-left:2px solid transparent;"
+            "  padding:8px 14px;"
+            "  font-size:12px;"
+            "  text-align:left;"
+            "}"
+            "QPushButton:hover{"
+            "  background:#13253d;"
+            "  color:#a0c4e0;"
+            "}");
+    }
+    btn->setCursor(Qt::PointingHandCursor);
+}
+
+void mainwindow::updateCartNotification()
+{
+    int count = m_souvenirManager.getTotalItemCount();
+    if (m_viewPurchasesButton)
+        m_viewPurchasesButton->setText(
+            QString("View Purchase Screen (Cart: %1)").arg(count));
 }

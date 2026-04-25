@@ -13,29 +13,22 @@
 #include "../database/database.h"
 #include "../souvenir/souvenirmanager.h"
 
-/**
- * TeamInfoWidget
- * Shows team info and lets user buy souvenirs.
- */
 class TeamInfoWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    /**
-     * Build the widget.
-     */
-    explicit TeamInfoWidget(SouvenirManager *manager, QWidget *parent = nullptr);
+    // Pass db pointer so we can query souvenirs live from the DB
+    explicit TeamInfoWidget(SouvenirManager *manager, Database *db, QWidget *parent = nullptr);
 
-    /**
-     * Update right panel for selected team.
-     */
+    // Update right panel for selected team
     void setTeam(const mlbInfo &team);
 
+public slots:
+    // Called by AdminWidget::souvenirDataChanged — reloads souvenir list for current team
+    void reloadSouvenirs();
+
 signals:
-    /**
-     * Tell main window the cart count changed.
-     */
     void cartUpdated();
 
 private:
@@ -51,7 +44,7 @@ private:
     QLabel *m_roof;
 
     QListWidget *m_souvenirList;
-    QSpinBox *m_quantitySpinBox;
+    QSpinBox    *m_quantitySpinBox;
     QPushButton *m_buyButton;
 
     std::string m_currentTeamName;
@@ -59,10 +52,14 @@ private:
     QList<SouvenirItem> m_currentSouvenirs;
 
     SouvenirManager *m_souvenirManager = nullptr;
+    Database        *m_db              = nullptr;
 
     void buildLayout();
     QFrame *makeInfoCell(const QString &label, QLabel *&valueLabel);
     void loadSouvenirs(const QList<SouvenirItem> &items);
-    QList<SouvenirItem> getHardcodedSouvenirs(const std::string &teamName);
+
+    // Queries souvenirs table in DB; falls back to hardcoded if table is empty
+    QList<SouvenirItem> getSouvenirs(const std::string &teamName);
+
     void buySelectedSouvenir();
 };

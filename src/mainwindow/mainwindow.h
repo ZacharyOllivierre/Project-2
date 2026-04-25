@@ -2,10 +2,16 @@
 
 #include <QMainWindow>
 #include <QPushButton>
+#include <QStackedWidget>
+#include <QWidget>
 #include "../database/database.h"
 #include "../purchase/purchasewindow.h"
 #include "../souvenir/souvenirmanager.h"
 #include <vector>
+
+class TeamInfoWidget;
+class AdminWidget;
+class BrowseWidget;
 
 class mainwindow : public QMainWindow
 {
@@ -13,19 +19,31 @@ class mainwindow : public QMainWindow
 
 public:
     explicit mainwindow(QWidget *parent = nullptr);
+    void loadTeams(const std::vector<mlbInfo> &teams, Database *db);
 
-    /**
-     * Load team data and build UI.
-     */
-    void loadTeams(const std::vector<mlbInfo> &teams);
+private slots:
+    void updateCartNotification();
 
 private:
-    SouvenirManager m_souvenirManager;
-    PurchaseWindow *m_purchaseWindow = nullptr;
-    QPushButton *m_viewPurchasesButton = nullptr;
+    SouvenirManager  m_souvenirManager;
+    Database        *m_db              = nullptr;
+    PurchaseWindow  *m_purchaseWindow  = nullptr;
 
-    /**
-     * Update cart notification text.
-     */
-    void updateCartNotification();
+    QPushButton     *m_viewPurchasesButton = nullptr;
+    QStackedWidget  *m_stack               = nullptr;
+
+    QWidget         *m_homePage        = nullptr;
+    TeamInfoWidget  *m_teamInfoPage    = nullptr;
+    BrowseWidget    *m_browsePage      = nullptr;
+    AdminWidget     *m_adminPage       = nullptr;
+
+    QPushButton     *m_navHome         = nullptr;
+    QPushButton     *m_navTeamInfo     = nullptr;
+    QPushButton     *m_navBrowse       = nullptr;
+    QPushButton     *m_navPlanTrip     = nullptr;
+    QPushButton     *m_navAdmin        = nullptr;
+
+    QWidget* buildSidebar();
+    void     setActivePage(QWidget *page, QPushButton *activeBtn);
+    void     styleNavBtn(QPushButton *btn, bool active = false);
 };

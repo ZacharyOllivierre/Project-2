@@ -64,11 +64,10 @@ int main(int argc, char *argv[])
     db.SortVector(db.GetMlbInfoVector(), function<bool(const mlbInfo &, const mlbInfo &)>(byCap));
 
     mainwindow w;
-    w.loadTeams(db.GetMlbInfoVector());
+    w.loadTeams(db.GetMlbInfoVector(), &db);
     w.show();
 
-    BrowseWidget* browse = new BrowseWidget(db.GetMlbInfoVector());
-    browse->show();
+
 
     return app.exec();
 }

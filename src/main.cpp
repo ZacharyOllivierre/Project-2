@@ -2,6 +2,7 @@
 #include "hub/hub.h"
 #include "mainwindow/mainwindow.h"
 #include "browse/browsewidget.h"
+#include "graph/graphvisualizer.h"
 
 #include <QApplication>
 #include <functional>
@@ -74,6 +75,11 @@ int main(int argc, char *argv[])
     Hub h;
     h.show();
 
+
+    GraphVisualizer* graphVisualizer = new GraphVisualizer(QPointF(500, 500));
+    graphVisualizer->updateGraphData(db.GetMlbInfoVector(), db.GetStadiumDistancesVector());
+    graphVisualizer->loadGraph();
+    graphVisualizer->show();
 
     return app.exec();
 }

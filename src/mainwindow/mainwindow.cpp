@@ -3,6 +3,10 @@
 #include "../admin/adminwidget.h"
 #include "../browse/browsewidget.h"
 
+#include <QCryptographicHash>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
@@ -164,7 +168,58 @@ QWidget* mainwindow::buildSidebar()
     connect(m_navTeamInfo, &QPushButton::clicked, this, [this]{ setActivePage(m_teamInfoPage,     m_navTeamInfo); });
     connect(m_navBrowse,   &QPushButton::clicked, this, [this]{ setActivePage(m_browsePage,       m_navBrowse); });
     connect(m_navPlanTrip, &QPushButton::clicked, this, [this]{ setActivePage(m_stack->widget(3), m_navPlanTrip); });
-    connect(m_navAdmin,    &QPushButton::clicked, this, [this]{ setActivePage(m_adminPage,        m_navAdmin); });
+    connect(m_navAdmin, &QPushButton::clicked, this, [this]
+    {
+        bool ok;
+        QString password;
+        QString hash;
+        QString expectedHash;
+
+        ok = false;
+
+        password = QInputDialog::getText(this,
+                                         "Admin Login",
+                                         "Enter administrator password:",
+                                         QLineEdit::Password,
+                                         "",
+                                         &ok);
+
+        if (!ok)
+        {
+            return;
+        }
+
+        hash = QString(
+            QCryptographicHash::hash(
+                QString("cs1d_mlb_admin_salt_%1").arg(password).toUtf8(),
+                QCryptographicHash::Sha256
+            ).toHex()
+        );
+
+        expectedHash = "757ccc78485530665f59a01a4d4bcf2818d3ef57d68290a0d58021d3f89463ce";
+
+        if (hash != expectedHash)
+        {
+            QMessageBox::warning(this,
+                                 "Access Denied",
+                                 "Incorrect administrator password.");
+            return;
+        }
+
+        if (m_adminPage)
+        {
+            AdminWidget *adminWidget;
+
+            adminWidget = qobject_cast<AdminWidget*>(m_adminPage);
+
+            if (adminWidget)
+            {
+                adminWidget->refresh();
+            }
+        }
+
+        setActivePage(m_adminPage, m_navAdmin);
+    });
 
     return sidebar;
 }

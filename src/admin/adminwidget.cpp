@@ -944,7 +944,7 @@ static bool addDefaultSouvenirsForTeam(QSqlDatabase db,
 }
 
 static bool addTraditionalSouvenirToAllTeams(QSqlDatabase db,
-                                             const std::vector<mlbInfo> &teams
+                                             const std::vector<mlbInfo> &teams,
                                              const QString &itemName,
                                              double price,
                                              const QString &category,

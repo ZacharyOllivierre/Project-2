@@ -12,6 +12,7 @@
 class TeamInfoWidget;
 class AdminWidget;
 class BrowseWidget;
+class GraphVisualizer;
 
 class mainwindow : public QMainWindow
 {
@@ -35,11 +36,13 @@ private:
     QWidget         *m_homePage        = nullptr;
     TeamInfoWidget  *m_teamInfoPage    = nullptr;
     BrowseWidget    *m_browsePage      = nullptr;
+    GraphVisualizer *m_graphPage       = nullptr;
     AdminWidget     *m_adminPage       = nullptr;
 
     QPushButton     *m_navHome         = nullptr;
     QPushButton     *m_navTeamInfo     = nullptr;
     QPushButton     *m_navBrowse       = nullptr;
+    QPushButton     *m_navGraph        = nullptr;
     QPushButton     *m_navPlanTrip     = nullptr;
     QPushButton     *m_navAdmin        = nullptr;
 

@@ -2,6 +2,7 @@
 #include "../teaminfowidget/teaminfowidget.h"
 #include "../admin/adminwidget.h"
 #include "../browse/browsewidget.h"
+#include "../graph/graphvisualizer.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -53,7 +54,13 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
     m_browsePage->hide();   // prevent it auto-showing before user navigates to it
     m_stack->addWidget(m_browsePage);
 
-    // Page 3 — Plan a Trip placeholder
+    // Page 3 — Graph
+    m_graphPage = new GraphVisualizer(QPointF(800, 600));
+    m_graphPage->updateGraphData(teams, m_db->GetStadiumDistancesVector());
+    m_graphPage->loadGraph();
+    m_stack->addWidget(m_graphPage);
+
+    // Page 4 — Plan a Trip placeholder
     auto *tripPage = new QWidget;
     tripPage->setStyleSheet("background:#0d1c2e;");
     m_stack->addWidget(tripPage);
@@ -137,6 +144,7 @@ QWidget* mainwindow::buildSidebar()
     m_navHome     = new QPushButton("  Home");
     m_navTeamInfo = new QPushButton("  Team Info");
     m_navBrowse   = new QPushButton("  Browse");
+    m_navGraph    = new QPushButton("  Graph");
     m_navPlanTrip = new QPushButton("  Plan a Trip");
     m_navAdmin    = new QPushButton("  Manage Data");
 
@@ -151,7 +159,9 @@ QWidget* mainwindow::buildSidebar()
     lay->addWidget(m_navBrowse);
 
     addSection("Trip Planner");
+    styleNavBtn(m_navGraph);
     styleNavBtn(m_navPlanTrip);
+    lay->addWidget(m_navGraph);
     lay->addWidget(m_navPlanTrip);
 
     addSection("Admin");
@@ -163,7 +173,8 @@ QWidget* mainwindow::buildSidebar()
     connect(m_navHome,     &QPushButton::clicked, this, [this]{ setActivePage(m_homePage,         m_navHome); });
     connect(m_navTeamInfo, &QPushButton::clicked, this, [this]{ setActivePage(m_teamInfoPage,     m_navTeamInfo); });
     connect(m_navBrowse,   &QPushButton::clicked, this, [this]{ setActivePage(m_browsePage,       m_navBrowse); });
-    connect(m_navPlanTrip, &QPushButton::clicked, this, [this]{ setActivePage(m_stack->widget(3), m_navPlanTrip); });
+    connect(m_navGraph,    &QPushButton::clicked, this, [this]{ setActivePage(m_graphPage,        m_navGraph); });
+    connect(m_navPlanTrip, &QPushButton::clicked, this, [this]{ setActivePage(m_stack->widget(4), m_navPlanTrip); });
     connect(m_navAdmin,    &QPushButton::clicked, this, [this]{ setActivePage(m_adminPage,        m_navAdmin); });
 
     return sidebar;
@@ -177,7 +188,7 @@ void mainwindow::setActivePage(QWidget *page, QPushButton *activeBtn)
 {
     if (!page || !m_stack) return;
     m_stack->setCurrentWidget(page);
-    for (auto *btn : {m_navHome, m_navTeamInfo, m_navBrowse, m_navPlanTrip, m_navAdmin})
+    for (auto *btn : {m_navHome, m_navTeamInfo, m_navBrowse, m_navGraph, m_navPlanTrip, m_navAdmin})
         styleNavBtn(btn, btn == activeBtn);
 }
 

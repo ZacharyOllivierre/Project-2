@@ -100,6 +100,7 @@ void GraphVisualizer::loadGraph(int nodeSize, int edgeWidth)
 
         // Create node label
         auto text = scene->addText(node.stadiumName);
+        text->setDefaultTextColor(Qt::white);
 
         // Center text under node
         QRectF textRect = text->boundingRect();

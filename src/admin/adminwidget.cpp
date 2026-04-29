@@ -10,6 +10,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
+#include <vector>
 
 // ─── Depth-aware palette ────────────────────────────────────────────────────
 // Rule: deeper background = darker shade. Foreground elements step lighter.
@@ -24,6 +25,40 @@
 // Text white:   #ffffff  (active item, titles)
 // Accent:       #4a9ade  (interactive highlight)
 // ────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Database maintenance helper prototypes
+// ─────────────────────────────────────────────────────────────────────────────
+
+static QString findDatabaseFile(const QString &fileName);
+
+static QString activeMlbDatabasePath();
+
+static bool resetActiveMlbDatabase(QString &errorMessage);
+
+static bool souvenirExists(QSqlDatabase db,
+                           const QString &teamName,
+                           const QString &itemName);
+
+static bool addDefaultSouvenirsForTeam(QSqlDatabase db,
+                                       const QString &teamName,
+                                       QString &errorMessage);
+
+static bool addTraditionalSouvenirToAllTeams(QSqlDatabase db,
+                                             const std::vector<mlbInfo> &teams,
+                                             const QString &itemName,
+                                             double price,
+                                             const QString &category,
+                                             QString &errorMessage);
+
+static bool deleteTraditionalSouvenirFromAllTeams(QSqlDatabase db,
+                                                  const QString &itemName,
+                                                  QString &errorMessage);
+
+static bool importNewStadiumsFromDatabase(QSqlDatabase destinationDb,
+                                          const QString &filePath,
+                                          QStringList &importedTeams,
+                                          QString &errorMessage);
 
 static const char* GLOBAL_STYLE = R"(
     QWidget {

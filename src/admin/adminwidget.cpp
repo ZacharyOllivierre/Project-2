@@ -589,6 +589,7 @@ QWidget* AdminWidget::buildPricingTab()
 // ─────────────────────────────────────────────────────────────────────────────
 // Database Tab
 // ─────────────────────────────────────────────────────────────────────────────
+
 QWidget* AdminWidget::buildDatabaseTab()
 {
     auto *page = new QWidget;
@@ -607,6 +608,7 @@ QWidget* AdminWidget::buildDatabaseTab()
     );
 
     infoLabel->setStyleSheet("color:#7aa0c0; font-size:11px; border:none;");
+
     infoLay->addWidget(infoLabel);
 
     auto *buttonRow = new QHBoxLayout;
@@ -617,9 +619,9 @@ QWidget* AdminWidget::buildDatabaseTab()
     connect(btnImport, &QPushButton::clicked, this, [this]()
     {
         QString filePath;
+        QString startPath;
         QStringList importedTeams;
         QString errorMessage;
-        QString startPath;
 
         startPath = findDatabaseFile("new_mlb_info.db");
 

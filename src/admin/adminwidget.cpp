@@ -10,6 +10,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
+#include <QAbstractItemView>
 #include <vector>
 
 // ─── Depth-aware palette ────────────────────────────────────────────────────

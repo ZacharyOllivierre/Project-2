@@ -14,6 +14,8 @@ Database::~Database()
 
 void Database::OpenDB()
 {
+    CloseDB();
+    
     mlbInfoVector.clear();
     stadiumDistancesVector.clear();
 
@@ -132,10 +134,27 @@ void Database::OpenDB()
 void Database::CloseDB()
 {
     if (mlb_info_db.isOpen())
+    {
         mlb_info_db.close();
+    }
 
     if (stadium_distances_db.isOpen())
+    {
         stadium_distances_db.close();
+    }
+
+    mlb_info_db = QSqlDatabase();
+    stadium_distances_db = QSqlDatabase();
+
+    if (QSqlDatabase::contains("MLB Info Database"))
+    {
+        QSqlDatabase::removeDatabase("MLB Info Database");
+    }
+
+    if (QSqlDatabase::contains("Stadium Distances Database"))
+    {
+        QSqlDatabase::removeDatabase("Stadium Distances Database");
+    }
 }
 
 vector<mlbInfo> &Database::GetMlbInfoVector()

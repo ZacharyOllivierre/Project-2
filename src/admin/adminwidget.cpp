@@ -1,5 +1,12 @@
 #include "adminwidget.h"
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QInputDialog>
+#include <QSqlError>
+#include <QSqlQuery>
 
 // ─── Depth-aware palette ────────────────────────────────────────────────────
 // Rule: deeper background = darker shade. Foreground elements step lighter.
@@ -405,6 +412,134 @@ QWidget* AdminWidget::buildPricingTab()
     topRow->addWidget(btnApply);
     topRow->addStretch();
     lay->addLayout(topRow);
+    auto *traditionalRow = new QHBoxLayout;
+
+    traditionalRow->setSpacing(8);
+
+    auto *traditionalLabel = new QLabel("Traditional Item:");
+    traditionalLabel->setStyleSheet("color:#7aa0c0; font-size:11px; border:none;");
+
+    auto *traditionalItemEdit = new QLineEdit;
+    traditionalItemEdit->setPlaceholderText("Example: Baseball cap");
+
+    auto *traditionalPriceSpin = new QDoubleSpinBox;
+    traditionalPriceSpin->setRange(0.01, 9999.99);
+    traditionalPriceSpin->setDecimals(2);
+    traditionalPriceSpin->setPrefix("$ ");
+    traditionalPriceSpin->setValue(19.99);
+    traditionalPriceSpin->setFixedWidth(100);
+
+    auto *traditionalCategoryBox = new QComboBox;
+    traditionalCategoryBox->addItems({"Apparel",
+                                      "Equipment",
+                                      "Memorabilia",
+                                      "Collectible",
+                                      "Food & Drink",
+                                      "Other"});
+
+    auto *btnSaveTraditional = makeBtn("Save To All Teams", "#1a5c34");
+    auto *btnDeleteTraditional = makeBtn("Delete From All Teams", "#5c1a1a");
+
+    connect(btnSaveTraditional, &QPushButton::clicked, this,
+            [this, traditionalItemEdit, traditionalPriceSpin, traditionalCategoryBox]()
+    {
+        QString itemName;
+        QString errorMessage;
+
+        itemName = traditionalItemEdit->text().trimmed();
+
+        if (itemName.isEmpty())
+        {
+            QMessageBox::warning(this,
+                                 "Validation",
+                                 "Traditional souvenir name cannot be empty.");
+            return;
+        }
+
+        ensureSouvenirTable();
+
+        if (!addTraditionalSouvenirToAllTeams(souvenirDB(),
+                                              m_db->GetMlbInfoVector(),
+                                              itemName,
+                                              traditionalPriceSpin->value(),
+                                              traditionalCategoryBox->currentText(),
+                                              errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Save Failed",
+                                  "Could not save the traditional souvenir.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        loadSouvenirTable(m_cmbSouvenirTeam->currentText());
+        loadPricingTable(m_cmbPricingTeam->currentText());
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(this,
+                                 "Saved",
+                                 "The traditional souvenir was saved for all teams.");
+    });
+
+    connect(btnDeleteTraditional, &QPushButton::clicked, this,
+            [this, traditionalItemEdit]()
+    {
+        QString itemName;
+        QString errorMessage;
+        QMessageBox::StandardButton reply;
+    
+        itemName = traditionalItemEdit->text().trimmed();
+
+        if (itemName.isEmpty())
+        {
+            QMessageBox::warning(this,
+                                 "Validation",
+                                 "Enter the traditional souvenir name to delete.");
+            return;
+        }
+
+        reply = QMessageBox::warning(this,
+                                     "Delete Traditional Souvenir",
+                                      QString("Delete \"%1\" from every team?")
+                                          .arg(itemName),
+                                      QMessageBox::Yes | QMessageBox::Cancel);
+
+        if (reply != QMessageBox::Yes)
+        {
+            return;
+        }
+    
+        if (!deleteTraditionalSouvenirFromAllTeams(souvenirDB(),
+                                                    itemName,
+                                                    errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Delete Failed",
+                                  "Could not delete the traditional souvenir.\n\n" +
+                                  errorMessage);
+            return;
+        }
+    
+        loadSouvenirTable(m_cmbSouvenirTeam->currentText());
+        loadPricingTable(m_cmbPricingTeam->currentText());
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(this,
+                                 "Deleted",
+                                 "The traditional souvenir was deleted from all teams.");
+    });
+
+    traditionalRow->addWidget(traditionalLabel);
+    traditionalRow->addWidget(traditionalItemEdit, 2);
+    traditionalRow->addWidget(traditionalPriceSpin);
+    traditionalRow->addWidget(traditionalCategoryBox);
+    traditionalRow->addWidget(btnSaveTraditional);
+    traditionalRow->addWidget(btnDeleteTraditional);
+    traditionalRow->addStretch();
+
+    lay->addLayout(traditionalRow);
 
     m_pricingTable = new QTableWidget(0, 4);
     m_pricingTable->setHorizontalHeaderLabels({"Item", "Category", "Price", "ID"});
@@ -454,6 +589,351 @@ QPushButton* AdminWidget::makeBtn(const QString &label, const QString &bgColor)
         "QPushButton:disabled{ color:#3a5060; }").arg(bgColor));
     b->setCursor(Qt::PointingHandCursor);
     return b;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Database maintenance helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+static QString findDatabaseFile(const QString &fileName)
+{
+    QStringList paths;
+
+    paths << "databases/" + fileName
+          << "../databases/" + fileName
+          << "../../databases/" + fileName
+          << "../../../databases/" + fileName;
+
+    for (const QString &path : paths)
+    {
+        if (QFileInfo::exists(path))
+        {
+            return QFileInfo(path).absoluteFilePath();
+        }
+    }
+
+    return "";
+}
+
+static QString activeMlbDatabasePath()
+{
+    QString originalPath;
+
+    originalPath = findDatabaseFile("mlb_info.db");
+
+    if (originalPath.isEmpty())
+    {
+        return "";
+    }
+
+    return QDir(QFileInfo(originalPath).absolutePath()).filePath("mlb_info_active.db");
+}
+
+static bool resetActiveMlbDatabase(QString &errorMessage)
+{
+    QString originalPath;
+    QString activePath;
+
+    originalPath = findDatabaseFile("mlb_info.db");
+    activePath = activeMlbDatabasePath();
+
+    if (originalPath.isEmpty())
+    {
+        errorMessage = "Could not find databases/mlb_info.db.";
+        return false;
+    }
+
+    if (activePath.isEmpty())
+    {
+        errorMessage = "Could not determine the active database path.";
+        return false;
+    }
+
+    if (QFileInfo::exists(activePath))
+    {
+        if (!QFile::remove(activePath))
+        {
+            errorMessage = "Could not remove mlb_info_active.db. Make sure the database is closed.";
+            return false;
+        }
+    }
+
+    if (!QFile::copy(originalPath, activePath))
+    {
+        errorMessage = "Could not copy mlb_info.db to mlb_info_active.db.";
+        return false;
+    }
+
+    return true;
+}
+
+static bool souvenirExists(QSqlDatabase db,
+                           const QString &teamName,
+                           const QString &itemName)
+{
+    QSqlQuery query(db);
+
+    query.prepare("SELECT COUNT(*) FROM souvenirs "
+                  "WHERE trim(team_name)=trim(?) AND trim(item_name)=trim(?)");
+
+    query.addBindValue(teamName);
+    query.addBindValue(itemName);
+
+    if (!query.exec())
+    {
+        return false;
+    }
+
+    if (!query.next())
+    {
+        return false;
+    }
+
+    return query.value(0).toInt() > 0;
+}
+
+static bool addDefaultSouvenirsForTeam(QSqlDatabase db,
+                                       const QString &teamName,
+                                       QString &errorMessage)
+{
+    struct DefaultSouvenir
+    {
+        QString itemName;
+        double price;
+        QString category;
+    };
+
+    QList<DefaultSouvenir> defaults;
+
+    defaults.append({"Baseball cap", 19.99, "Apparel"});
+    defaults.append({"Baseball bat", 89.39, "Equipment"});
+    defaults.append({"Team pennant", 17.99, "Memorabilia"});
+    defaults.append({"Autographed baseball", 29.99, "Collectible"});
+    defaults.append({"Team jersey", 199.99, "Apparel"});
+
+    for (const DefaultSouvenir &item : defaults)
+    {
+        if (souvenirExists(db, teamName, item.itemName))
+        {
+            continue;
+        }
+
+        QSqlQuery insertQuery(db);
+
+        insertQuery.prepare("INSERT INTO souvenirs "
+                            "(team_name, item_name, price, category) "
+                            "VALUES (?, ?, ?, ?)");
+
+        insertQuery.addBindValue(teamName);
+        insertQuery.addBindValue(item.itemName);
+        insertQuery.addBindValue(item.price);
+        insertQuery.addBindValue(item.category);
+
+        if (!insertQuery.exec())
+        {
+            errorMessage = insertQuery.lastError().text();
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool addTraditionalSouvenirToAllTeams(QSqlDatabase db,
+                                             const vector<mlbInfo> &teams,
+                                             const QString &itemName,
+                                             double price,
+                                             const QString &category,
+                                             QString &errorMessage)
+{
+    for (const mlbInfo &team : teams)
+    {
+        QString teamName;
+
+        teamName = QString::fromStdString(team.teamName).trimmed();
+
+        if (souvenirExists(db, teamName, itemName))
+        {
+            QSqlQuery updateQuery(db);
+
+            updateQuery.prepare("UPDATE souvenirs "
+                                "SET price=?, category=? "
+                                "WHERE trim(team_name)=trim(?) "
+                                "AND trim(item_name)=trim(?)");
+
+            updateQuery.addBindValue(price);
+            updateQuery.addBindValue(category);
+            updateQuery.addBindValue(teamName);
+            updateQuery.addBindValue(itemName);
+
+            if (!updateQuery.exec())
+            {
+                errorMessage = updateQuery.lastError().text();
+                return false;
+            }
+        }
+        else
+        {
+            QSqlQuery insertQuery(db);
+
+            insertQuery.prepare("INSERT INTO souvenirs "
+                                "(team_name, item_name, price, category) "
+                                "VALUES (?, ?, ?, ?)");
+
+            insertQuery.addBindValue(teamName);
+            insertQuery.addBindValue(itemName);
+            insertQuery.addBindValue(price);
+            insertQuery.addBindValue(category);
+
+            if (!insertQuery.exec())
+            {
+                errorMessage = insertQuery.lastError().text();
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static bool deleteTraditionalSouvenirFromAllTeams(QSqlDatabase db,
+                                                  const QString &itemName,
+                                                  QString &errorMessage)
+{
+    QSqlQuery query(db);
+
+    query.prepare("DELETE FROM souvenirs WHERE trim(item_name)=trim(?)");
+    query.addBindValue(itemName);
+
+    if (!query.exec())
+    {
+        errorMessage = query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
+static bool importNewStadiumsFromDatabase(QSqlDatabase destinationDb,
+                                          const QString &filePath,
+                                          QStringList &importedTeams,
+                                          QString &errorMessage)
+{
+    QString connectionName;
+
+    connectionName = "AdminImportConnection";
+
+    if (QSqlDatabase::contains(connectionName))
+    {
+        QSqlDatabase::removeDatabase(connectionName);
+    }
+
+    QSqlDatabase sourceDb;
+
+    sourceDb = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+    sourceDb.setDatabaseName(filePath);
+
+    if (!sourceDb.open())
+    {
+        errorMessage = sourceDb.lastError().text();
+        return false;
+    }
+
+    QSqlQuery readQuery(sourceDb);
+
+    if (!readQuery.exec("SELECT team_name, stadium_name, seating_capacity, "
+                        "location, playing_surface, league, date_opened, "
+                        "distance_to_center_field, ballpark_typology, roof_type "
+                        "FROM mlb_info"))
+    {
+        errorMessage = readQuery.lastError().text();
+        sourceDb.close();
+        return false;
+    }
+
+    while (readQuery.next())
+    {
+        QString teamName;
+
+        teamName = readQuery.value(0).toString().trimmed();
+
+        QSqlQuery countQuery(destinationDb);
+
+        countQuery.prepare("SELECT COUNT(*) FROM mlb_info WHERE trim(team_name)=trim(?)");
+        countQuery.addBindValue(teamName);
+
+        if (!countQuery.exec() || !countQuery.next())
+        {
+            errorMessage = countQuery.lastError().text();
+            sourceDb.close();
+            return false;
+        }
+
+        if (countQuery.value(0).toInt() > 0)
+        {
+            QSqlQuery updateQuery(destinationDb);
+
+            updateQuery.prepare("UPDATE mlb_info SET "
+                                "stadium_name=?, seating_capacity=?, location=?, "
+                                "playing_surface=?, league=?, date_opened=?, "
+                                "distance_to_center_field=?, ballpark_typology=?, "
+                                "roof_type=? "
+                                "WHERE trim(team_name)=trim(?)");
+
+            updateQuery.addBindValue(readQuery.value(1));
+            updateQuery.addBindValue(readQuery.value(2));
+            updateQuery.addBindValue(readQuery.value(3));
+            updateQuery.addBindValue(readQuery.value(4));
+            updateQuery.addBindValue(readQuery.value(5));
+            updateQuery.addBindValue(readQuery.value(6));
+            updateQuery.addBindValue(readQuery.value(7));
+            updateQuery.addBindValue(readQuery.value(8));
+            updateQuery.addBindValue(readQuery.value(9));
+            updateQuery.addBindValue(teamName);
+
+            if (!updateQuery.exec())
+            {
+                errorMessage = updateQuery.lastError().text();
+                sourceDb.close();
+                return false;
+            }
+        }
+        else
+        {
+            QSqlQuery insertQuery(destinationDb);
+
+            insertQuery.prepare("INSERT INTO mlb_info "
+                                "(team_name, stadium_name, seating_capacity, location, "
+                                "playing_surface, league, date_opened, "
+                                "distance_to_center_field, ballpark_typology, roof_type) "
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            for (int index = 0; index < 10; index++)
+            {
+                insertQuery.addBindValue(readQuery.value(index));
+            }
+
+            if (!insertQuery.exec())
+            {
+                errorMessage = insertQuery.lastError().text();
+                sourceDb.close();
+                return false;
+            }
+        }
+
+        if (!addDefaultSouvenirsForTeam(destinationDb, teamName, errorMessage))
+        {
+            sourceDb.close();
+            return false;
+        }
+
+        importedTeams.append(teamName);
+    }
+
+    sourceDb.close();
+    importedTeams.removeDuplicates();
+
+    return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -932,12 +1412,49 @@ QWidget* AdminWidget::buildDatabaseTab()
         "}"
         "QPushButton:hover{ background:#255a90; color:#ffffff; }");
     btnImport->setCursor(Qt::PointingHandCursor);
+    
     // UI only — backend team wires the actual file-copy logic
-    connect(btnImport, &QPushButton::clicked, this, [this]() {
-        QMessageBox::information(this, "Import Database",
-            "Backend not yet connected.\n\n"
-            "When implemented, this will open a file picker and replace\n"
-            "the active mlb_info.db with the selected file, then reload.");
+    // Changed to implement backend features as of 4/29/26
+    connect(btnImport, &QPushButton::clicked, this, [this]()
+    {
+        QString filePath;
+        QStringList importedTeams;
+        QString errorMessage;
+
+        filePath = QFileDialog::getOpenFileName(this,
+                                            "Import New MLB Database",
+                                            "",
+                                            "SQLite Database (*.db);;All Files (*)");
+
+        if (filePath.isEmpty())
+        {
+            return;
+        }
+
+        ensureSouvenirTable();
+
+        if (!importNewStadiumsFromDatabase(souvenirDB(),
+                                           filePath,
+                                           importedTeams,
+                                           errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Import Failed",
+                                  "The selected database could not be imported.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        m_db->CloseDB();
+        m_db->OpenDB();
+
+        refresh();
+
+        QMessageBox::information(this,
+                                 "Import Complete",
+                                 QString("Imported/updated %1 stadium(s).\n\n%2")
+                                     .arg(importedTeams.size())
+                                     .arg(importedTeams.join("\n")));
     });
 
     importBtnRow->addWidget(btnImport);
@@ -962,18 +1479,43 @@ QWidget* AdminWidget::buildDatabaseTab()
         "}"
         "QPushButton:hover{ background:#722020; color:#ffffff; }");
     btnReset->setCursor(Qt::PointingHandCursor);
-    connect(btnReset, &QPushButton::clicked, this, [this]() {
-        auto reply = QMessageBox::warning(this, "Reset Database",
-            "This will delete all admin changes and restore the database\n"
-            "to its original state. This cannot be undone.\n\n"
-            "Continue?",
-            QMessageBox::Yes | QMessageBox::Cancel);
-        if (reply == QMessageBox::Yes) {
-            QMessageBox::information(this, "Reset Database",
-                "Backend not yet connected.\n\n"
-                "When implemented, this will copy the bundled backup\n"
-                "over the active database and reload all data.");
+    connect(btnReset, &QPushButton::clicked, this, [this]()
+    {
+        QMessageBox::StandardButton reply;
+        QString errorMessage;
+
+        reply = QMessageBox::warning(this,
+                                     "Reset Database",
+                                     "This will delete all admin changes and restore the database\n"
+                                     "to its original state. This cannot be undone.\n\n"
+                                     "Continue?",
+                                     QMessageBox::Yes | QMessageBox::Cancel);
+
+        if (reply != QMessageBox::Yes)
+        {
+            return;
         }
+
+        m_db->CloseDB();
+
+        if (!resetActiveMlbDatabase(errorMessage))
+        {
+            m_db->OpenDB();
+
+            QMessageBox::critical(this,
+                                  "Reset Failed",
+                                  "The active database could not be reset.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        m_db->OpenDB();
+
+        refresh();
+
+        QMessageBox::information(this,
+                                 "Reset Complete",
+                                 "The active database has been restored from the original database.");
     });
 
     resetBtnRow->addWidget(btnReset);

@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "astar/astar.h"
 #include <QCoreApplication>
 #include <unordered_map>
 
@@ -21,8 +22,23 @@ int main(int argc, char *argv[])
 
     std::unordered_map<string, int> myMap;
 
+    // ── A* TEST (blake) ──────────────────────────────────────────────────────
+    // Remove or comment out this block once the module is integrated into the UI.
+    {
+        const string start = "Wrigley Field";
+        const string goal  = "Yankee Stadium";
 
+        StadiumGraph graph;
+        graph.buildFromDistances(db.GetStadiumDistancesVector());
 
+        cout << "\n[A* TEST] " << start << " -> " << goal << "\n";
+        int cost = graph.runAStar(start, goal);
+        if (cost == -1)
+            cout << "[A*] No path found.\n";
+        else
+            graph.printPath(start, goal);
+    }
+    // ── END A* TEST ──────────────────────────────────────────────────────────
 
 
 

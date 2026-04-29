@@ -9,7 +9,7 @@ LDFLAGS = -F/opt/homebrew/Cellar/qt/6.11.0/lib \
           -framework QtCore
 
 SRC = Database.cpp main.cpp
-OBJ = $(SRC:.cpp=.o)
+OBJ = $(SRC:.cpp=.o) astar/astar.o
 TARGET = main
 
 all: $(TARGET)
@@ -18,6 +18,9 @@ $(TARGET): $(OBJ)
 	$(CXX) $(OBJ) $(LDFLAGS) -o $(TARGET)
 
 %.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+astar/astar.o: astar/astar.cpp astar/astar.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:

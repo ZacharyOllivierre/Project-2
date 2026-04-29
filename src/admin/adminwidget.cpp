@@ -1103,6 +1103,19 @@ static bool importNewStadiumsFromDatabase(QSqlDatabase destinationDb,
     return true;
 }
 
+static void reloadAdminDatabase(Database *db, AdminWidget *widget)
+{
+    if (!db || !widget)
+    {
+        return;
+    }
+
+    db->CloseDB();
+    db->OpenDB();
+
+    widget->refresh();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  DB helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1375,58 +1388,144 @@ void AdminWidget::onAddNewStadium()
 
 void AdminWidget::onSaveStadium()
 {
+    QString teamName;
+    QString stadiumName;
+    QString location;
+    QString centerField;
+    QString errorMessage;
     mlbInfo info;
-    info.teamName              = m_edtTeamName->text().trimmed().toStdString();
-    info.stadiumName           = m_edtStadiumName->text().trimmed().toStdString();
-    info.location              = m_edtLocation->text().trimmed().toStdString();
-    info.league                = m_cmbLeague->currentText().toStdString();
-    info.roofType              = m_cmbRoof->currentText().toStdString();
-    info.playingSurface        = m_cmbSurface->currentText().toStdString();
-    info.ballparkTypology      = m_cmbTypology->currentText().toStdString();
-    info.seatingCapacity       = m_spnCapacity->value();
-    info.dateOpened            = m_spnYearOpened->value();
-    info.distanceToCenterField = m_edtCenterField->text().trimmed().toStdString();
+    bool ok;
 
-    if (info.teamName.empty() || info.stadiumName.empty()) {
-        QMessageBox::warning(this, "Validation", "Team and stadium name are required.");
+    teamName = m_edtTeamName->text().trimmed();
+    stadiumName = m_edtStadiumName->text().trimmed();
+    location = m_edtLocation->text().trimmed();
+    centerField = m_edtCenterField->text().trimmed();
+
+    if (teamName.isEmpty())
+    {
+        QMessageBox::warning(this,
+                             "Validation",
+                             "Team name cannot be empty.");
         return;
     }
 
-    bool ok = m_stadiumIsNew ? insertStadiumInDB(info)
-                             : updateStadiumInDB(info, m_editingTeamName);
-    if (ok) {
-        auto &vec = m_db->GetMlbInfoVector();
-        if (m_stadiumIsNew) {
-            vec.push_back(info);
-        } else {
-            for (auto &v : vec)
-                if (QString::fromStdString(v.teamName).trimmed() == m_editingTeamName)
-                    { v = info; break; }
-        }
-        loadStadiumTable(m_stadiumSearch->text());
-        clearStadiumForm();
-        QMessageBox::information(this, "Saved", "Stadium saved successfully.");
-    } else {
-        QMessageBox::critical(this, "Error", "Failed to save stadium.");
+    if (stadiumName.isEmpty())
+    {
+        QMessageBox::warning(this,
+                             "Validation",
+                             "Stadium name cannot be empty.");
+        return;
     }
+
+    if (location.isEmpty())
+    {
+        QMessageBox::warning(this,
+                             "Validation",
+                             "Location cannot be empty.");
+        return;
+    }
+
+    if (centerField.isEmpty())
+    {
+        QMessageBox::warning(this,
+                             "Validation",
+                             "Distance to center field cannot be empty.");
+        return;
+    }
+
+    info.teamName = teamName.toStdString();
+    info.stadiumName = stadiumName.toStdString();
+    info.seatingCapacity = m_spnCapacity->value();
+    info.location = location.toStdString();
+    info.playingSurface = m_cmbSurface->currentText().toStdString();
+    info.league = m_cmbLeague->currentText().toStdString();
+    info.dateOpened = m_spnYearOpened->value();
+    info.distanceToCenterField = centerField.toStdString();
+    info.ballparkTypology = m_cmbTypology->currentText().toStdString();
+    info.roofType = m_cmbRoof->currentText().toStdString();
+
+    if (m_stadiumIsNew || m_editingTeamName.isEmpty())
+    {
+        ok = insertStadiumInDB(info);
+
+        if (ok)
+        {
+            addDefaultSouvenirsForTeam(souvenirDB(), teamName, errorMessage);
+        }
+    }
+    else
+    {
+        ok = updateStadiumInDB(info, m_editingTeamName);
+    }
+
+    if (!ok)
+    {
+        QMessageBox::critical(this,
+                              "Save Failed",
+                              "The stadium information could not be saved.");
+        return;
+    }
+
+    m_db->CloseDB();
+    m_db->OpenDB();
+
+    refresh();
+
+    clearStadiumForm();
+
+    emit souvenirDataChanged();
+
+    QMessageBox::information(this,
+                             "Saved",
+                             "Stadium information was saved.");
 }
 
 void AdminWidget::onDeleteStadium()
 {
-    if (m_editingTeamName.isEmpty()) return;
-    if (QMessageBox::question(this, "Confirm",
-        QString("Remove %1 and all its souvenirs?").arg(m_editingTeamName),
-        QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) return;
+    QMessageBox::StandardButton reply;
+    bool ok;
 
-    if (deleteStadiumFromDB(m_editingTeamName)) {
-        auto &vec = m_db->GetMlbInfoVector();
-        vec.erase(std::remove_if(vec.begin(), vec.end(), [&](const mlbInfo &v){
-            return QString::fromStdString(v.teamName).trimmed() == m_editingTeamName;
-        }), vec.end());
-        loadStadiumTable(m_stadiumSearch->text());
-        clearStadiumForm();
-        emit souvenirDataChanged();
+    if (m_editingTeamName.isEmpty())
+    {
+        QMessageBox::warning(this,
+                             "Delete Stadium",
+                             "Select a stadium before deleting.");
+        return;
     }
+
+    reply = QMessageBox::warning(this,
+                                 "Delete Stadium",
+                                 QString("Delete %1 and its souvenirs?")
+                                     .arg(m_editingTeamName),
+                                 QMessageBox::Yes | QMessageBox::Cancel);
+
+    if (reply != QMessageBox::Yes)
+    {
+        return;
+    }
+
+    ok = deleteStadiumFromDB(m_editingTeamName);
+
+    if (!ok)
+    {
+        QMessageBox::critical(this,
+                              "Delete Failed",
+                              "The stadium could not be deleted.");
+        return;
+    }
+
+    m_db->CloseDB();
+    m_db->OpenDB();
+
+    refresh();
+
+    clearStadiumForm();
+
+    emit souvenirDataChanged();
+
+    QMessageBox::information(this,
+                             "Deleted",
+                             "The stadium was deleted.");
 }
 
 void AdminWidget::onClearStadiumForm() { clearStadiumForm(); }

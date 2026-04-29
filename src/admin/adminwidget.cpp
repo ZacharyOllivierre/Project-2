@@ -1,12 +1,15 @@
 #include "adminwidget.h"
+
 #include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QInputDialog>
+#include <QMessageBox>
+#include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStringList>
 
 // ─── Depth-aware palette ────────────────────────────────────────────────────
 // Rule: deeper background = darker shade. Foreground elements step lighter.
@@ -372,27 +375,36 @@ QWidget* AdminWidget::buildSouvenirTab()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Pricing Tab
+// Pricing Tab
 // ─────────────────────────────────────────────────────────────────────────────
-
 QWidget* AdminWidget::buildPricingTab()
 {
     auto *page = new QWidget;
-    auto *lay  = new QVBoxLayout(page);
+    auto *lay = new QVBoxLayout(page);
+
     lay->setContentsMargins(12, 12, 12, 12);
     lay->setSpacing(8);
 
-    auto *topRow = new QHBoxLayout;
-    topRow->setSpacing(8);
-    auto mkLbl = [](const QString &t) {
+    auto mkLbl = [](const QString &t)
+    {
         auto *l = new QLabel(t);
+
         l->setStyleSheet("color:#7aa0c0; font-size:11px; border:none;");
+
         return l;
     };
+
+    auto *topRow = new QHBoxLayout;
+
+    topRow->setSpacing(8);
+
     m_cmbPricingTeam = new QComboBox;
     m_cmbPricingTeam->setMinimumWidth(220);
-    connect(m_cmbPricingTeam, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &AdminWidget::onPricingTeamChanged);
+
+    connect(m_cmbPricingTeam,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &AdminWidget::onPricingTeamChanged);
 
     m_spnPctIncrease = new QDoubleSpinBox;
     m_spnPctIncrease->setRange(-99.0, 500.0);
@@ -402,6 +414,7 @@ QWidget* AdminWidget::buildPricingTab()
     m_spnPctIncrease->setFixedWidth(90);
 
     auto *btnApply = makeBtn("Apply", "#5c3d0a");
+
     connect(btnApply, &QPushButton::clicked, this, &AdminWidget::onApplyPctIncrease);
 
     topRow->addWidget(mkLbl("Team:"));
@@ -411,20 +424,302 @@ QWidget* AdminWidget::buildPricingTab()
     topRow->addWidget(m_spnPctIncrease);
     topRow->addWidget(btnApply);
     topRow->addStretch();
+
     lay->addLayout(topRow);
+
+    auto *traditionalBox = new QGroupBox("Traditional Souvenir Maintenance");
+    auto *traditionalLay = new QVBoxLayout(traditionalBox);
+
+    auto *traditionalRow = new QHBoxLayout;
+
+    traditionalRow->setSpacing(8);
+
+    auto *traditionalItemEdit = new QLineEdit;
+    traditionalItemEdit->setPlaceholderText("Example: Baseball cap");
+
+    auto *traditionalPriceSpin = new QDoubleSpinBox;
+    traditionalPriceSpin->setRange(0.01, 9999.99);
+    traditionalPriceSpin->setDecimals(2);
+    traditionalPriceSpin->setPrefix("$ ");
+    traditionalPriceSpin->setValue(19.99);
+    traditionalPriceSpin->setFixedWidth(100);
+
+    auto *traditionalCategoryBox = new QComboBox;
+    traditionalCategoryBox->addItems({"Apparel",
+                                      "Equipment",
+                                      "Memorabilia",
+                                      "Collectible",
+                                      "Food & Drink",
+                                      "Other"});
+
+    auto *btnSaveTraditional = makeBtn("Save To All Teams", "#1a5c34");
+    auto *btnDeleteTraditional = makeBtn("Delete From All Teams", "#5c1a1a");
+
+    connect(btnSaveTraditional,
+            &QPushButton::clicked,
+            this,
+            [this, traditionalItemEdit, traditionalPriceSpin, traditionalCategoryBox]()
+    {
+        QString itemName;
+        QString errorMessage;
+
+        itemName = traditionalItemEdit->text().trimmed();
+
+        if (itemName.isEmpty())
+        {
+            QMessageBox::warning(this,
+                                 "Validation",
+                                 "Traditional souvenir name cannot be empty.");
+            return;
+        }
+
+        ensureSouvenirTable();
+
+        if (!addTraditionalSouvenirToAllTeams(souvenirDB(),
+                                              m_db->GetMlbInfoVector(),
+                                              itemName,
+                                              traditionalPriceSpin->value(),
+                                              traditionalCategoryBox->currentText(),
+                                              errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Save Failed",
+                                  "Could not save the traditional souvenir.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        loadSouvenirTable(m_cmbSouvenirTeam->currentText());
+        loadPricingTable(m_cmbPricingTeam->currentText());
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(this,
+                                 "Saved",
+                                 "The traditional souvenir was saved for all teams.");
+    });
+
+    connect(btnDeleteTraditional,
+            &QPushButton::clicked,
+            this,
+            [this, traditionalItemEdit]()
+    {
+        QString itemName;
+        QString errorMessage;
+        QMessageBox::StandardButton reply;
+
+        itemName = traditionalItemEdit->text().trimmed();
+
+        if (itemName.isEmpty())
+        {
+            QMessageBox::warning(this,
+                                 "Validation",
+                                 "Enter the traditional souvenir name to delete.");
+            return;
+        }
+
+        reply = QMessageBox::warning(this,
+                                     "Delete Traditional Souvenir",
+                                     QString("Delete \"%1\" from every team?")
+                                         .arg(itemName),
+                                     QMessageBox::Yes | QMessageBox::Cancel);
+
+        if (reply != QMessageBox::Yes)
+        {
+            return;
+        }
+
+        if (!deleteTraditionalSouvenirFromAllTeams(souvenirDB(),
+                                                   itemName,
+                                                   errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Delete Failed",
+                                  "Could not delete the traditional souvenir.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        loadSouvenirTable(m_cmbSouvenirTeam->currentText());
+        loadPricingTable(m_cmbPricingTeam->currentText());
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(this,
+                                 "Deleted",
+                                 "The traditional souvenir was deleted from all teams.");
+    });
+
+    traditionalRow->addWidget(mkLbl("Traditional Item:"));
+    traditionalRow->addWidget(traditionalItemEdit, 2);
+    traditionalRow->addWidget(mkLbl("Price:"));
+    traditionalRow->addWidget(traditionalPriceSpin);
+    traditionalRow->addWidget(mkLbl("Category:"));
+    traditionalRow->addWidget(traditionalCategoryBox);
+    traditionalRow->addWidget(btnSaveTraditional);
+    traditionalRow->addWidget(btnDeleteTraditional);
+
+    traditionalLay->addLayout(traditionalRow);
+
+    lay->addWidget(traditionalBox);
 
     m_pricingTable = new QTableWidget(0, 4);
     m_pricingTable->setHorizontalHeaderLabels({"Item", "Category", "Price", "ID"});
+
     styleTable(m_pricingTable);
+
     m_pricingTable->setColumnHidden(3, true);
+
     lay->addWidget(m_pricingTable);
 
     auto *btnRow = new QHBoxLayout;
+
     auto *btnSave = makeBtn("Save All Price Changes", "#1a5c34");
+
     connect(btnSave, &QPushButton::clicked, this, &AdminWidget::onSaveAllPrices);
+
     btnRow->addWidget(btnSave);
     btnRow->addStretch();
+
     lay->addLayout(btnRow);
+
+    return page;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Database Tab
+// ─────────────────────────────────────────────────────────────────────────────
+QWidget* AdminWidget::buildDatabaseTab()
+{
+    auto *page = new QWidget;
+    auto *lay = new QVBoxLayout(page);
+
+    lay->setContentsMargins(12, 12, 12, 12);
+    lay->setSpacing(10);
+
+    auto *infoBox = new QGroupBox("Database Maintenance");
+    auto *infoLay = new QVBoxLayout(infoBox);
+
+    auto *infoLabel = new QLabel(
+        "The original database, mlb_info.db, is never edited directly.\n"
+        "All admin changes are saved to mlb_info_active.db.\n"
+        "Reset deletes the active copy and recreates it from the original database."
+    );
+
+    infoLabel->setStyleSheet("color:#7aa0c0; font-size:11px; border:none;");
+    infoLay->addWidget(infoLabel);
+
+    auto *buttonRow = new QHBoxLayout;
+
+    auto *btnImport = makeBtn("Import New Stadium Database", "#1e4a7a");
+    auto *btnReset = makeBtn("Reset Active Database", "#5c1a1a");
+
+    connect(btnImport, &QPushButton::clicked, this, [this]()
+    {
+        QString filePath;
+        QStringList importedTeams;
+        QString errorMessage;
+        QString startPath;
+
+        startPath = findDatabaseFile("new_mlb_info.db");
+
+        filePath = QFileDialog::getOpenFileName(
+            this,
+            "Import New MLB Database",
+            startPath.isEmpty() ? QString() : QFileInfo(startPath).absolutePath(),
+            "SQLite Database (*.db);;All Files (*)"
+        );
+
+        if (filePath.isEmpty())
+        {
+            return;
+        }
+
+        ensureSouvenirTable();
+
+        if (!importNewStadiumsFromDatabase(souvenirDB(),
+                                           filePath,
+                                           importedTeams,
+                                           errorMessage))
+        {
+            QMessageBox::critical(this,
+                                  "Import Failed",
+                                  "The selected database could not be imported.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        m_db->CloseDB();
+        m_db->OpenDB();
+
+        refresh();
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(
+            this,
+            "Import Complete",
+            QString("Imported/updated %1 stadium(s).\n\n%2")
+                .arg(importedTeams.size())
+                .arg(importedTeams.join("\n"))
+        );
+    });
+
+    connect(btnReset, &QPushButton::clicked, this, [this]()
+    {
+        QMessageBox::StandardButton reply;
+        QString errorMessage;
+
+        reply = QMessageBox::warning(
+            this,
+            "Reset Database",
+            "This will delete all admin changes and restore the active database\n"
+            "from the original mlb_info.db file.\n\n"
+            "This cannot be undone.\n\n"
+            "Continue?",
+            QMessageBox::Yes | QMessageBox::Cancel
+        );
+
+        if (reply != QMessageBox::Yes)
+        {
+            return;
+        }
+
+        m_db->CloseDB();
+
+        if (!resetActiveMlbDatabase(errorMessage))
+        {
+            m_db->OpenDB();
+
+            QMessageBox::critical(this,
+                                  "Reset Failed",
+                                  "The active database could not be reset.\n\n" +
+                                  errorMessage);
+            return;
+        }
+
+        m_db->OpenDB();
+
+        refresh();
+
+        emit souvenirDataChanged();
+
+        QMessageBox::information(
+            this,
+            "Reset Complete",
+            "The active database has been restored from the original database."
+        );
+    });
+
+    buttonRow->addWidget(btnImport);
+    buttonRow->addWidget(btnReset);
+    buttonRow->addStretch();
+
+    infoLay->addLayout(buttonRow);
+
+    lay->addWidget(infoBox);
+    lay->addStretch();
+
     return page;
 }
 

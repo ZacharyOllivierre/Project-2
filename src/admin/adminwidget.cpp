@@ -944,7 +944,7 @@ static bool addDefaultSouvenirsForTeam(QSqlDatabase db,
 }
 
 static bool addTraditionalSouvenirToAllTeams(QSqlDatabase db,
-                                             const vector<mlbInfo> &teams,
+                                             const std::vector<mlbInfo> &teams
                                              const QString &itemName,
                                              double price,
                                              const QString &category,
@@ -1165,7 +1165,10 @@ QSqlDatabase AdminWidget::souvenirDB()
 bool AdminWidget::ensureSouvenirTable()
 {
     QSqlQuery q(souvenirDB());
-    bool ok = q.exec(R"(
+    bool ok;
+    bool tableHasRows;
+
+    ok = q.exec(R"(
         CREATE TABLE IF NOT EXISTS souvenirs (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             team_name TEXT NOT NULL,
@@ -1174,8 +1177,43 @@ bool AdminWidget::ensureSouvenirTable()
             category  TEXT NOT NULL DEFAULT 'Other'
         )
     )");
-    if (!ok) qWarning() << "[Admin] ensureSouvenirTable:" << q.lastError().text();
-    return ok;
+
+    if (!ok)
+    {
+        qWarning() << "[Admin] ensureSouvenirTable:" << q.lastError().text();
+        return false;
+    }
+
+    QSqlQuery countQuery(souvenirDB());
+
+    tableHasRows = false;
+
+    if (countQuery.exec("SELECT COUNT(*) FROM souvenirs") && countQuery.next())
+    {
+        tableHasRows = countQuery.value(0).toInt() > 0;
+    }
+
+    if (!tableHasRows)
+    {
+        QString errorMessage;
+
+        for (const mlbInfo &team : m_db->GetMlbInfoVector())
+        {
+            QString teamName;
+
+            teamName = QString::fromStdString(team.teamName).trimmed();
+
+            if (!addDefaultSouvenirsForTeam(souvenirDB(),
+                                            teamName,
+                                            errorMessage))
+            {
+                qWarning() << "[Admin] seed default souvenirs:" << errorMessage;
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 QList<Souvenir> AdminWidget::souvenirListForTeam(const QString &teamName)
@@ -1244,8 +1282,38 @@ bool AdminWidget::updateStadiumInDB(const mlbInfo &info, const QString &original
     q.addBindValue(QString::fromStdString(info.roofType));
     q.addBindValue(originalTeamName);
     bool ok = q.exec();
-    if (!ok) qWarning() << "[Admin] updateStadiumInDB:" << q.lastError().text();
-    return ok;
+
+    if (!ok)
+    {
+        qWarning() << "[Admin] updateStadiumInDB:" << q.lastError().text();
+        return false;
+    }
+
+    QString newTeamName;
+
+    newTeamName = QString::fromStdString(info.teamName).trimmed();
+
+    if (newTeamName != originalTeamName.trimmed())
+    {
+        QSqlQuery souvenirUpdate(souvenirDB());
+
+        souvenirUpdate.prepare("UPDATE souvenirs "
+                               "SET team_name=? "
+                               "WHERE trim(team_name)=trim(?)");
+
+        souvenirUpdate.addBindValue(newTeamName);
+        souvenirUpdate.addBindValue(originalTeamName);
+
+        if (!souvenirUpdate.exec())
+        {
+            qWarning() << "[Admin] updateStadiumInDB souvenir team rename:"
+                       << souvenirUpdate.lastError().text();
+
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool AdminWidget::deleteStadiumFromDB(const QString &teamName)

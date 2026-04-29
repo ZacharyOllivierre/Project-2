@@ -1,7 +1,9 @@
 #include "database.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QStringList>
 
 Database::Database() {}
 
@@ -58,7 +60,28 @@ void Database::OpenDB()
         return;
     }
 
-    mlb_info_db.setDatabaseName(mlbPath);
+    // The original MLB database should never be modified directly.
+    // All admin changes are made to mlb_info_active.db.
+    //
+    // If mlb_info_active.db does not exist yet, create it as a copy
+    // of the original mlb_info.db.
+    QFileInfo originalMlbInfo(mlbPath);
+    QDir databaseDir(originalMlbInfo.absolutePath());
+
+    QString activeMlbPath;
+
+    activeMlbPath = databaseDir.filePath("mlb_info_active.db");
+
+    if (!QFileInfo::exists(activeMlbPath))
+    {
+        if (!QFile::copy(originalMlbInfo.absoluteFilePath(), activeMlbPath))
+        {
+            cout << "[ERROR] Could not create mlb_info_active.db\n";
+            return;
+        }
+    }
+
+    mlb_info_db.setDatabaseName(activeMlbPath);
     stadium_distances_db.setDatabaseName(distPath);
 
     if (!mlb_info_db.open()) {

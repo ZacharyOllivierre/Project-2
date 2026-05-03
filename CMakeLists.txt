@@ -23,9 +23,17 @@ qt_add_executable(Project2
     src/browse/browsewidget.ui
     src/graph/graphvisualizer.h
     src/graph/graphvisualizer.cpp
+<<<<<<< HEAD
     src/hub/hub.h
     src/hub/hub.cpp
     src/hub/hub.ui
+=======
+    src/admin/adminwidget.h       # <-- NEW
+    src/admin/adminwidget.cpp     # <-- NEW
+    src/homepage/homepage.cpp     # <-- NEW
+    src/homepage/homepage.h       # <-- NEW
+    src/homepage/homepage.ui      # <-- NEW
+>>>>>>> 9d86517 (Homepage UI)
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

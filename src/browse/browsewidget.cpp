@@ -1,6 +1,5 @@
 #include "browsewidget.h"
 #include "ui_browsewidget.h"
-#include "../hub/hub.h"
 
 BrowseWidget::BrowseWidget(const vector<mlbInfo>& teams, QWidget *parent)
     : QWidget(parent)
@@ -225,14 +224,3 @@ void BrowseWidget::on_sortTypeCombo_currentIndexChanged(int index)
     sortType = static_cast<SortType>(index);
     populateTable();
 }
-
-void BrowseWidget::toHub()
-{
-
-    Hub* hub = new Hub(nullptr);
-    hub->setAttribute(Qt::WA_DeleteOnClose);
-    hub->show();
-
-    this->close();
-}
-

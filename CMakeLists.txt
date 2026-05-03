@@ -18,8 +18,11 @@ qt_add_executable(Project2
     src/souvenir/souvenirmanager.h
     src/purchase/purchasewindow.cpp
     src/purchase/purchasewindow.h
-    src/browse/browsewidget.h src/browse/browsewidget.cpp src/browse/browsewidget.ui
-    src/graph/graphvisualizer.h src/graph/graphvisualizer.cpp
+    src/browse/browsewidget.h
+    src/browse/browsewidget.cpp
+    src/browse/browsewidget.ui
+    src/graph/graphvisualizer.h
+    src/graph/graphvisualizer.cpp
     src/hub/hub.h
     src/hub/hub.cpp
     src/hub/hub.ui

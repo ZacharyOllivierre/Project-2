@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+class BrowseWidget;
+
 namespace Ui {
 class Hub;
 }
@@ -16,10 +18,11 @@ public:
     ~Hub();
 
 private slots:
-    void toBrowseWidget();
+    void on_buttonTeamBrowse_clicked();
 
 private:
     Ui::Hub *ui;
+    BrowseWidget *browseWidget;
 };
 
 #endif // HUB_H

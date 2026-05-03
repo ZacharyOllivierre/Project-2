@@ -45,8 +45,6 @@ private slots:
 
     void on_sortTypeCombo_currentIndexChanged(int index);
 
-    void toHub();
-
 private:
     Ui::BrowseWidget *ui;
 

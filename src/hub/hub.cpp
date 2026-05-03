@@ -4,11 +4,25 @@
 #include "../browse/browsewidget.h"
 #include "../database/database.h"
 
+#include <QVBoxLayout>
+
 Hub::Hub(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Hub)
+    , browseWidget(nullptr)
 {
     ui->setupUi(this);
+
+    Database db;
+    db.OpenDB();
+
+    browseWidget = new BrowseWidget(db.GetMlbInfoVector(), ui->pageBrowse);
+
+    QVBoxLayout *browseLayout = new QVBoxLayout(ui->pageBrowse);
+    browseLayout->setContentsMargins(0, 0, 0, 0);
+    browseLayout->addWidget(browseWidget);
+
+    ui->stackedWidget->setCurrentWidget(ui->pageHome);
 }
 
 Hub::~Hub()
@@ -16,14 +30,7 @@ Hub::~Hub()
     delete ui;
 }
 
-void Hub::toBrowseWidget()
+void Hub::on_buttonTeamBrowse_clicked()
 {
-    Database db;
-    db.OpenDB();
-
-    BrowseWidget* browse = new BrowseWidget(db.GetMlbInfoVector());
-    browse->setAttribute(Qt::WA_DeleteOnClose);
-    browse->show();
-
-    this->close();
+    ui->stackedWidget->setCurrentWidget(ui->pageBrowse);
 }

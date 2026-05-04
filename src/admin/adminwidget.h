@@ -19,6 +19,8 @@
 #include <QWidget>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QFileDialog>
+#include <QFileInfo>
 
 struct Souvenir
 {

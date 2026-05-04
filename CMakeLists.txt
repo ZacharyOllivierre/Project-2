@@ -25,6 +25,11 @@ qt_add_executable(Project2
     src/graph/graphvisualizer.cpp
     src/admin/adminwidget.h       # <-- NEW
     src/admin/adminwidget.cpp     # <-- NEW
+    src/astar/astar.cpp
+    src/astar/astar.h
+    src/homepage/homepage.cpp
+    src/homepage/homepage.h
+    src/homepage/homepage.ui
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

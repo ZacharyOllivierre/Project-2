@@ -1,7 +1,9 @@
 #include "database.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QStringList>
 
 Database::Database() {}
 
@@ -12,6 +14,8 @@ Database::~Database()
 
 void Database::OpenDB()
 {
+    CloseDB();
+
     mlbInfoVector.clear();
     stadiumDistancesVector.clear();
 
@@ -58,7 +62,28 @@ void Database::OpenDB()
         return;
     }
 
-    mlb_info_db.setDatabaseName(mlbPath);
+    // The original MLB database should never be modified directly.
+    // All admin changes are made to mlb_info_active.db.
+    //
+    // If mlb_info_active.db does not exist yet, create it as a copy
+    // of the original mlb_info.db.
+    QFileInfo originalMlbInfo(mlbPath);
+    QDir databaseDir(originalMlbInfo.absolutePath());
+
+    QString activeMlbPath;
+
+    activeMlbPath = databaseDir.filePath("mlb_info_active.db");
+
+    if (!QFileInfo::exists(activeMlbPath))
+    {
+        if (!QFile::copy(originalMlbInfo.absoluteFilePath(), activeMlbPath))
+        {
+            cout << "[ERROR] Could not create mlb_info_active.db\n";
+            return;
+        }
+    }
+
+    mlb_info_db.setDatabaseName(activeMlbPath);
     stadium_distances_db.setDatabaseName(distPath);
 
     if (!mlb_info_db.open()) {
@@ -109,10 +134,27 @@ void Database::OpenDB()
 void Database::CloseDB()
 {
     if (mlb_info_db.isOpen())
+    {
         mlb_info_db.close();
+    }
 
     if (stadium_distances_db.isOpen())
+    {
         stadium_distances_db.close();
+    }
+
+    mlb_info_db = QSqlDatabase();
+    stadium_distances_db = QSqlDatabase();
+
+    if (QSqlDatabase::contains("MLB Info Database"))
+    {
+        QSqlDatabase::removeDatabase("MLB Info Database");
+    }
+
+    if (QSqlDatabase::contains("Stadium Distances Database"))
+    {
+        QSqlDatabase::removeDatabase("Stadium Distances Database");
+    }
 }
 
 vector<mlbInfo> &Database::GetMlbInfoVector()

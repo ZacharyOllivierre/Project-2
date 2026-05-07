@@ -1,3 +1,8 @@
+/**
+ * @file main.cpp
+ * @brief Starts the Qt application, opens the databases, loads MLB data, and shows the main window.
+ */
+
 #include "database.h"
 #include "mainwindow.h"
 
@@ -6,16 +11,12 @@
 #include <iostream>
 #include <vector>
 
-using std::cout;
-using std::endl;
 using std::function;
-using std::vector;
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // Global Dark Mode Theme
     app.setStyleSheet(R"(
         QMainWindow, QWidget {
             background-color: #121826;
@@ -66,7 +67,8 @@ int main(int argc, char *argv[])
         function<bool(const mlbInfo&, const mlbInfo&)>(byCap)
         );
 
-    mainwindow w;
+    mainwindow w(&db);
+    w.loadStadiumDistances(db.GetStadiumDistancesVector());
     w.loadTeams(db.GetMlbInfoVector());
     w.show();
 

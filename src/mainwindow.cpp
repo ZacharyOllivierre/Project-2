@@ -1,18 +1,20 @@
+/**
+ * @file mainwindow.cpp
+ * @brief Builds the main window UI, loads stadium distances, updates the cart button, and displays MST mileage.
+ */
+
 #include "mainwindow.h"
 #include "teaminfowidget.h"
 
 #include <QHBoxLayout>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
-/**
- * Constructor
- * Build the main window shell.
- */
-mainwindow::mainwindow(QWidget* parent)
-    : QMainWindow(parent)
+mainwindow::mainwindow(Database* db, QWidget* parent)
+    : QMainWindow(parent), m_database(db)
 {
     setWindowTitle("MLB Planner");
     resize(1100, 700);
@@ -20,9 +22,20 @@ mainwindow::mainwindow(QWidget* parent)
     m_purchaseWindow = new PurchaseWindow(&m_souvenirManager, this);
 }
 
-/**
- * Update the cart count on the button.
- */
+// Load every stadium distance into the graph structure
+void mainwindow::loadStadiumDistances(const std::vector<stadiumDistances>& distances)
+{
+    for (const stadiumDistances& distance : distances)
+    {
+        m_stadiumGraph.addEdge(
+            QString::fromStdString(distance.originatedStadium),
+            QString::fromStdString(distance.destinationStadium),
+            distance.distance
+            );
+    }
+}
+
+// Update the cart button to show current item count
 void mainwindow::updateCartNotification()
 {
     int count = m_souvenirManager.getTotalItemCount();
@@ -35,9 +48,50 @@ void mainwindow::updateCartNotification()
     }
 }
 
-/**
- * Load team data into the UI.
- */
+// Run Prim's algorithm and display the MST mileage
+void mainwindow::showMSTResult()
+{
+    QStringList stadiums = m_stadiumGraph.getAllStadiums();
+
+    if (stadiums.isEmpty())
+    {
+        QMessageBox::warning(
+            this,
+            "MST Error",
+            "No stadium distance data was loaded."
+            );
+        return;
+    }
+
+    QString startStadium = stadiums.first();
+
+    QList<GraphEdge> mstEdges = m_stadiumGraph.primMST(startStadium);
+    int totalMileage = m_stadiumGraph.getTotalMileage(mstEdges);
+
+    QString result;
+    result += "Minimum Spanning Tree using Prim's Algorithm\n\n";
+    result += "Starting Stadium: " + startStadium + "\n\n";
+
+    for (const GraphEdge& edge : mstEdges)
+    {
+        result += QString("%1  ->  %2  :  %3 miles\n")
+        .arg(edge.from)
+            .arg(edge.to)
+            .arg(edge.distance);
+    }
+
+    result += "\nAssociated MST Mileage: ";
+    result += QString::number(totalMileage);
+    result += " miles";
+
+    QMessageBox::information(
+        this,
+        "Minimum Spanning Tree",
+        result
+        );
+}
+
+// Build the main UI layout and load team data
 void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
 {
     QWidget* central = new QWidget(this);
@@ -45,9 +99,6 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
     layout->setSpacing(12);
     layout->setContentsMargins(12, 12, 12, 12);
 
-    // -------------------------
-    // Left side
-    // -------------------------
     QWidget* leftPanel = new QWidget();
     QVBoxLayout* leftLayout = new QVBoxLayout(leftPanel);
 
@@ -71,6 +122,24 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
 
     updateCartNotification();
 
+    m_mstButton = new QPushButton("Show MST Mileage");
+    m_mstButton->setStyleSheet(
+        "QPushButton {"
+        "background-color: #16a34a;"
+        "color: white;"
+        "font-weight: 600;"
+        "border: 1px solid #22c55e;"
+        "border-radius: 8px;"
+        "padding: 8px 14px;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: #22c55e;"
+        "}"
+        "QPushButton:pressed {"
+        "background-color: #15803d;"
+        "}"
+        );
+
     QListWidget* teamList = new QListWidget();
     teamList->setMaximumWidth(240);
 
@@ -80,12 +149,10 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
     }
 
     leftLayout->addWidget(m_viewPurchasesButton);
+    leftLayout->addWidget(m_mstButton);
     leftLayout->addWidget(teamList);
 
-    // -------------------------
-    // Right side
-    // -------------------------
-    TeamInfoWidget* teamInfo = new TeamInfoWidget(&m_souvenirManager);
+    TeamInfoWidget* teamInfo = new TeamInfoWidget(&m_souvenirManager, m_database);
 
     if (!teams.empty())
     {
@@ -112,6 +179,12 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
                     m_purchaseWindow->raise();
                     m_purchaseWindow->activateWindow();
                 }
+            });
+
+    connect(m_mstButton, &QPushButton::clicked, this,
+            [this]()
+            {
+                showMSTResult();
             });
 
     connect(teamInfo, &TeamInfoWidget::cartUpdated, this,

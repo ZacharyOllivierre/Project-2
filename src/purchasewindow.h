@@ -1,8 +1,13 @@
+/**
+ * @file purchasewindow.h
+ * @brief Declares the purchase summary window that displays purchased souvenirs by stadium.
+ */
+
 #pragma once
 
 #include <QDialog>
-#include <QListWidget>
 #include <QLabel>
+#include <QListWidget>
 #include <QVBoxLayout>
 #include "souvenirmanager.h"
 
@@ -18,7 +23,7 @@ public:
     /**
      * Build the purchase screen.
      */
-    explicit PurchaseWindow(SouvenirManager* manager, QWidget* parent = nullptr);
+    explicit PurchaseWindow(SouvenirManager *manager, QWidget *parent = nullptr);
 
     /**
      * Reload the screen with latest purchases.
@@ -26,7 +31,7 @@ public:
     void refreshScreen();
 
 private:
-    SouvenirManager* m_manager = nullptr;
-    QListWidget* m_purchaseList = nullptr;
-    QLabel* m_grandTotalLabel = nullptr;
+    SouvenirManager *m_manager = nullptr;
+    QListWidget *m_purchaseList = nullptr;
+    QLabel *m_grandTotalLabel = nullptr;
 };

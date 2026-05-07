@@ -1,8 +1,13 @@
+/**
+ * @file souvenirmanager.h
+ * @brief Declares souvenir and purchase structures plus the manager that tracks purchases and totals.
+ */
+
 #pragma once
 
-#include <QString>
 #include <QList>
 #include <QMap>
+#include <QString>
 #include <QStringList>
 
 /**
@@ -11,7 +16,7 @@
 struct SouvenirItem
 {
     QString name;
-    double  price;
+    double price;
 };
 
 /**
@@ -20,8 +25,8 @@ struct SouvenirItem
 struct PurchasedItem
 {
     QString name;
-    double  price;
-    int     quantity;
+    double price;
+    int quantity;
 };
 
 /**
@@ -37,19 +42,17 @@ public:
      * Add a purchase to one stadium.
      * If item already exists, add quantity.
      */
-    void buySouvenir(const QString& stadiumName,
-                     const SouvenirItem& item,
-                     int quantity);
+    void buySouvenir(const QString &stadiumName, const SouvenirItem &item, int quantity);
 
     /**
      * Return all purchases for one stadium.
      */
-    QList<PurchasedItem> getPurchasesForStadium(const QString& stadiumName) const;
+    QList<PurchasedItem> getPurchasesForStadium(const QString &stadiumName) const;
 
     /**
      * Return subtotal for one stadium.
      */
-    double getStadiumTotal(const QString& stadiumName) const;
+    double getStadiumTotal(const QString &stadiumName) const;
 
     /**
      * Return total across all stadiums.

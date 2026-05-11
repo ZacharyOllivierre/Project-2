@@ -4,6 +4,9 @@
 #include "../browse/browsewidget.h"
 #include "../homepage/homepage.h"
 #include "../trip/tripwidget.h"
+#include "../stadiumgraph/stadiumgraph.h"
+#include "../dfs/dfs.h"
+#include "../bfs/bfs.h"
 
 #include <QCryptographicHash>
 #include <QInputDialog>
@@ -159,14 +162,75 @@ QWidget* mainwindow::buildPathViewerPage()
 
     lay->addWidget(card, 1);
 
-    // Wire run button — placeholder until DFS/BFS/MST are wired in
-    connect(runBtn, &QPushButton::clicked, this, [resultList, totalLbl, algoCmb]() {
+    // Wire run button — MST live, DFS/BFS pending
+    connect(runBtn, &QPushButton::clicked, this, [this, resultList, totalLbl, algoCmb]() {
         resultList->clear();
         QString algo = algoCmb->currentText();
-        resultList->addItem("[ " + algo + " — implementation pending ]");
-        resultList->addItem("Wire your traversal algorithm here and populate this list");
-        resultList->addItem("with the visit order. Set totalLbl text with the mileage.");
-        totalLbl->setText("Total mileage: pending implementation");
+
+        if (algo == "MST (Prim\'s)") {
+            // Build graph from DB distances
+            StadiumGraph g;
+            for (const auto &d : m_db->GetStadiumDistancesVector())
+                g.addEdge(QString::fromStdString(d.originatedStadium).trimmed(),
+                          QString::fromStdString(d.destinationStadium).trimmed(),
+                          d.distance);
+
+            // Use first stadium as start
+            QStringList all = g.getAllStadiums();
+            all.sort();
+            if (all.isEmpty()) {
+                resultList->addItem("No stadiums found in database.");
+                return;
+            }
+
+            QList<GraphEdge> mst = g.primMST(all.first());
+            int total = g.getTotalMileage(mst);
+
+            for (int i = 0; i < mst.size(); i++) {
+                resultList->addItem(
+                    QString("%1. %2  →  %3   (%4 mi)")
+                        .arg(i + 1).arg(mst[i].from).arg(mst[i].to).arg(mst[i].distance));
+            }
+
+            totalLbl->setText(QString("Total MST mileage: %1 mi  |  %2 edges")
+                                  .arg(total).arg(mst.size()));
+
+        } else if (algo == "DFS from Oracle Park") {
+            DFSGraph g;
+            g.buildFromDistances(m_db->GetStadiumDistancesVector());
+            DFSResult r = g.performDFSReportFromOraclePark();
+
+            for (int i = 0; i < (int)r.visitOrder.size(); i++) {
+                const DFSEdge &e = r.visitOrder[i];
+                if (i == 0)
+                    resultList->addItem(QString("1.  %1  (start)").arg(QString::fromStdString(e.to)));
+                else
+                    resultList->addItem(QString("%1.  %2  →  %3  (%4 mi)")
+                        .arg(i + 1)
+                        .arg(QString::fromStdString(e.from))
+                        .arg(QString::fromStdString(e.to))
+                        .arg(e.distance));
+            }
+            totalLbl->setText(QString("Total DFS traversal mileage: %1 mi").arg(r.totalMileage));
+
+        } else if (algo == "BFS from Target Field") {
+            BFSGraph g;
+            g.buildFromDistances(m_db->GetStadiumDistancesVector());
+            BFSResult r = g.performBFSReportFromTargetField();
+
+            for (int i = 0; i < (int)r.visitOrder.size(); i++) {
+                const BFSEdge &e = r.visitOrder[i];
+                if (i == 0)
+                    resultList->addItem(QString("1.  %1  (start)").arg(QString::fromStdString(e.to)));
+                else
+                    resultList->addItem(QString("%1.  %2  →  %3  (%4 mi)")
+                        .arg(i + 1)
+                        .arg(QString::fromStdString(e.from))
+                        .arg(QString::fromStdString(e.to))
+                        .arg(e.distance));
+            }
+            totalLbl->setText(QString("Total BFS traversal mileage: %1 mi").arg(r.totalMileage));
+        }
     });
 
     return page;

@@ -36,6 +36,10 @@ qt_add_executable(Project2
     src/trip/tripwidget.cpp
     src/stadiumgraph/stadiumgraph.h
     src/stadiumgraph/stadiumgraph.cpp
+    src/dfs/dfs.h
+    src/dfs/dfs.cpp
+    src/bfs/bfs.h
+    src/bfs/bfs.cpp
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

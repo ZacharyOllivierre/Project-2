@@ -30,6 +30,12 @@ qt_add_executable(Project2
     src/homepage/homepage.cpp
     src/homepage/homepage.h
     src/homepage/homepage.ui
+    src/trip/astarrunner.h
+    src/trip/astarrunner.cpp
+    src/trip/tripwidget.h
+    src/trip/tripwidget.cpp
+    src/stadiumgraph/stadiumgraph.h
+    src/stadiumgraph/stadiumgraph.cpp
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

@@ -2,7 +2,7 @@
 #include "../database/database.h"
 #include <unordered_map>
 
-class StadiumGraph {
+class AStarGraph {
 public:
     void buildFromDistances(const std::vector<stadiumDistances>& dist);
     void setHeuristic(const std::string& name, int h);

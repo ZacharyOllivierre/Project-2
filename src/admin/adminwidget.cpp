@@ -790,7 +790,7 @@ QPushButton* AdminWidget::makeBtn(const QString &label, const QString &bgColor)
                          "  padding:5px 14px;"
                          "  font-size:12px;"
                          "}"
-                         "QPushButton:hover{ color:#ffffff; filter:brightness(1.15); }"
+                         "QPushButton:hover{ color:#ffffff; background-color:rgba(255,255,255,20); }"
                          "QPushButton:disabled{ color:#3a5060; }").arg(bgColor));
     b->setCursor(Qt::PointingHandCursor);
     return b;

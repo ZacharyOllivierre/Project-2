@@ -1,7 +1,7 @@
 #include "astar.h"
 #include <algorithm>
 
-int StadiumGraph::getOrAddNode(const std::string& name)
+int AStarGraph::getOrAddNode(const std::string& name)
 {
     auto it = nameToIdx.find(name);
     if (it != nameToIdx.end()) return it->second;
@@ -14,7 +14,7 @@ int StadiumGraph::getOrAddNode(const std::string& name)
     return idx;
 }
 
-void StadiumGraph::buildFromDistances(const std::vector<stadiumDistances>& dist)
+void AStarGraph::buildFromDistances(const std::vector<stadiumDistances>& dist)
 {
     nameToIdx.clear();
     idxToName.clear();
@@ -28,14 +28,14 @@ void StadiumGraph::buildFromDistances(const std::vector<stadiumDistances>& dist)
     }
 }
 
-void StadiumGraph::setHeuristic(const std::string& name, int h)
+void AStarGraph::setHeuristic(const std::string& name, int h)
 {
     auto it = nameToIdx.find(name);
     if (it != nameToIdx.end())
         hCost[it->second] = h;
 }
 
-void StadiumGraph::relaxEdge(int goalIdx)
+void AStarGraph::relaxEdge(int goalIdx)
 {
     // Pick the unvisited node with the lowest f = g + h.
     int minF = INF;
@@ -70,7 +70,7 @@ void StadiumGraph::relaxEdge(int goalIdx)
     closed[u] = true;
 }
 
-int StadiumGraph::runAStar(const std::string& start, const std::string& goal)
+int AStarGraph::runAStar(const std::string& start, const std::string& goal)
 {
     int n = (int)idxToName.size();
 
@@ -101,7 +101,7 @@ int StadiumGraph::runAStar(const std::string& start, const std::string& goal)
     return closed[goalIdx] ? gCost[goalIdx] : -1;
 }
 
-std::vector<std::string> StadiumGraph::getPath(const std::string& goal) const
+std::vector<std::string> AStarGraph::getPath(const std::string& goal) const
 {
     auto it = nameToIdx.find(goal);
     if (it == nameToIdx.end()) return {};
@@ -118,7 +118,7 @@ std::vector<std::string> StadiumGraph::getPath(const std::string& goal) const
     return path;
 }
 
-void StadiumGraph::printPath(const std::string& start, const std::string& goal) const
+void AStarGraph::printPath(const std::string& start, const std::string& goal) const
 {
     auto pathVec = getPath(goal);
     if (pathVec.empty()) {

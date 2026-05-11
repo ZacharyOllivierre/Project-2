@@ -3,6 +3,7 @@
 #include "../admin/adminwidget.h"
 #include "../browse/browsewidget.h"
 #include "../homepage/homepage.h"
+#include "../trip/tripwidget.h"
 
 #include <QCryptographicHash>
 #include <QInputDialog>
@@ -12,6 +13,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QLabel>
+#include <QComboBox>
 #include <QWidget>
 
 mainwindow::mainwindow(QWidget *parent)
@@ -40,31 +42,37 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
     m_stack = new QStackedWidget;
     m_stack->setStyleSheet("QStackedWidget { background:#0d1c2e; }");
 
-    // Page 0 — Home (No longer blank yippeee - Brandon)
-    homepage *home = new homepage;
-    m_homePage = home;
+    // Page 0 — Home
+    m_homePage = new homepage;
     m_homePage->setStyleSheet("background:#0d1c2e;");
     m_stack->addWidget(m_homePage);
 
-    // Page 1 — Team Info
+    // Page 1 — Team Info (now has its own team list sidebar)
     m_teamInfoPage = new TeamInfoWidget(&m_souvenirManager, m_db);
-    if (!teams.empty())
-        m_teamInfoPage->setTeam(teams[0]);
+    m_teamInfoPage->loadTeamList(teams);
     connect(m_teamInfoPage, &TeamInfoWidget::cartUpdated,
             this, &mainwindow::updateCartNotification);
     m_stack->addWidget(m_teamInfoPage);
 
     // Page 2 — Browse
     m_browsePage = new BrowseWidget(teams);
-    m_browsePage->hide();   // prevent it auto-showing before user navigates to it
+    m_browsePage->hide();
     m_stack->addWidget(m_browsePage);
 
-    // Page 3 — Plan a Trip placeholder
-    auto *tripPage = new QWidget;
-    tripPage->setStyleSheet("background:#0d1c2e;");
-    m_stack->addWidget(tripPage);
+    // Page 3 — Plan a Trip
+    m_tripPage = new TripWidget(m_db, &m_souvenirManager);
+    m_tripPage->refresh();
+    connect(m_tripPage, &TripWidget::cartUpdated,
+            this, &mainwindow::updateCartNotification);
+    connect(m_tripPage, &TripWidget::routeReady,
+            this, &mainwindow::onRouteReady);
+    m_stack->addWidget(m_tripPage);
 
-    // Page 4 — Admin
+    // Page 4 — Path Viewer (DFS / BFS / MST display)
+    m_pathViewerPage = buildPathViewerPage();
+    m_stack->addWidget(m_pathViewerPage);
+
+    // Page 5 — Admin
     m_adminPage = new AdminWidget(m_db, this);
     m_adminPage->refresh();
     connect(m_adminPage, &AdminWidget::souvenirDataChanged,
@@ -73,29 +81,114 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
 
     root->addWidget(m_stack, 1);
 
-    // Default to Home — Browse won't appear until user clicks it
     setActivePage(m_homePage, m_navHome);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
+//  Path Viewer placeholder page
+// =============================================================================
+
+QWidget* mainwindow::buildPathViewerPage()
+{
+    auto *page = new QWidget;
+    page->setStyleSheet("background:#0d1c2e;");
+    auto *lay = new QVBoxLayout(page);
+    lay->setContentsMargins(24, 20, 24, 20);
+    lay->setSpacing(12);
+
+    auto *header = new QLabel("Path Viewer");
+    header->setStyleSheet("color:#ffffff; font-size:18px; font-weight:700;");
+    lay->addWidget(header);
+
+    auto *desc = new QLabel(
+        "Visualize graph traversal algorithms on the stadium network.\n"
+        "Select an algorithm and starting point to see the traversal order.");
+    desc->setStyleSheet("color:#4a6d8c; font-size:12px;");
+    desc->setWordWrap(true);
+    lay->addWidget(desc);
+
+    // Controls card
+    auto *card = new QWidget;
+    card->setStyleSheet("background:#111f33; border:1px solid #1a2d45; border-radius:4px;");
+    auto *cardLay = new QVBoxLayout(card);
+    cardLay->setContentsMargins(16, 14, 16, 14);
+    cardLay->setSpacing(10);
+
+    auto *ctrlRow = new QHBoxLayout;
+
+    auto mkLbl = [](const QString &t) {
+        auto *l = new QLabel(t);
+        l->setStyleSheet("color:#7aa0c0; font-size:11px; border:none;");
+        return l;
+    };
+
+    auto *algoCmb = new QComboBox;
+    algoCmb->addItems({"DFS from Oracle Park", "BFS from Target Field", "MST (Prim's)"});
+    algoCmb->setStyleSheet(
+        "QComboBox{ background:#0a1628; border:1px solid #1a2d45; border-radius:3px;"
+        "  color:#b8d4ec; padding:4px 8px; }"
+        "QComboBox::drop-down{ border:none; }"
+        "QComboBox QAbstractItemView{ background:#0f1e30; border:1px solid #1a2d45;"
+        "  selection-background-color:#1e4a70; color:#b8d4ec; }");
+
+    auto *runBtn = new QPushButton("Run Traversal");
+    runBtn->setStyleSheet(
+        "QPushButton{ background:#1e4a7a; color:#c8e0f4; border:none; border-radius:3px;"
+        "  padding:6px 16px; font-size:12px; }"
+        "QPushButton:hover{ background:#255a90; color:#ffffff; }");
+    runBtn->setCursor(Qt::PointingHandCursor);
+
+    ctrlRow->addWidget(mkLbl("Algorithm:"));
+    ctrlRow->addWidget(algoCmb, 1);
+    ctrlRow->addSpacing(16);
+    ctrlRow->addWidget(runBtn);
+    ctrlRow->addStretch();
+    cardLay->addLayout(ctrlRow);
+
+    auto *resultList = new QListWidget;
+    resultList->setStyleSheet(
+        "QListWidget{ background:#0a1628; border:1px solid #1a2d45; border-radius:3px; }"
+        "QListWidget::item{ padding:6px 10px; color:#b8d4ec; border:none; }"
+        "QListWidget::item:alternate{ background:#0d1f35; }");
+    resultList->setAlternatingRowColors(true);
+    cardLay->addWidget(resultList);
+
+    auto *totalLbl = new QLabel("Total mileage: —");
+    totalLbl->setStyleSheet("color:#4a9ade; font-size:12px; font-weight:600; border:none;");
+    cardLay->addWidget(totalLbl);
+
+    lay->addWidget(card, 1);
+
+    // Wire run button — placeholder until DFS/BFS/MST are wired in
+    connect(runBtn, &QPushButton::clicked, this, [resultList, totalLbl, algoCmb]() {
+        resultList->clear();
+        QString algo = algoCmb->currentText();
+        resultList->addItem("[ " + algo + " — implementation pending ]");
+        resultList->addItem("Wire your traversal algorithm here and populate this list");
+        resultList->addItem("with the visit order. Set totalLbl text with the mileage.");
+        totalLbl->setText("Total mileage: pending implementation");
+    });
+
+    return page;
+}
+
+// =============================================================================
 //  Sidebar
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
 
 QWidget* mainwindow::buildSidebar()
 {
     QWidget *sidebar = new QWidget;
     sidebar->setFixedWidth(200);
-    // Sidebar is one tone lighter than page bg — it visually "sits in front"
     sidebar->setStyleSheet("background:#111f33;");
 
     QVBoxLayout *lay = new QVBoxLayout(sidebar);
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
 
-    // Logo — lightest strip, topmost layer
+    // Logo
     QWidget *logo = new QWidget;
     logo->setFixedHeight(52);
-    // border:none on every element — prevents Qt from drawing a default focus/widget border
     logo->setStyleSheet("QWidget { background:#162035; border:none; }");
     QVBoxLayout *logoLay = new QVBoxLayout(logo);
     logoLay->setContentsMargins(14, 0, 14, 0);
@@ -104,19 +197,12 @@ QWidget* mainwindow::buildSidebar()
     logoLay->addWidget(logoTitle);
     lay->addWidget(logo);
 
-    // Cart button — actionable, near-white text
+    // Cart button
     m_viewPurchasesButton = new QPushButton("View Purchase Screen (Cart: 0)");
     m_viewPurchasesButton->setStyleSheet(
-        "QPushButton{"
-        "  background:#1a3a60;"
-        "  color:#d0e8ff;"
-        "  border:none;"
-        "  border-bottom:1px solid #1a2d45;"
-        "  padding:9px 14px;"
-        "  font-size:11px;"
-        "  font-weight:600;"
-        "  text-align:left;"
-        "}"
+        "QPushButton{ background:#1a3a60; color:#d0e8ff; border:none;"
+        "  border-bottom:1px solid #1a2d45; padding:9px 14px;"
+        "  font-size:11px; font-weight:600; text-align:left; }"
         "QPushButton:hover{ background:#1e4470; color:#ffffff; }");
     m_viewPurchasesButton->setCursor(Qt::PointingHandCursor);
     connect(m_viewPurchasesButton, &QPushButton::clicked, this, [this]() {
@@ -129,22 +215,20 @@ QWidget* mainwindow::buildSidebar()
     });
     lay->addWidget(m_viewPurchasesButton);
 
-    // Section label — very dark, recedes, just a structural divider
     auto addSection = [&](const QString &label) {
         QLabel *sec = new QLabel(label.toUpper());
         sec->setStyleSheet(
-            "color:#2e4d6a;"
-            "font-size:10px;"
-            "letter-spacing:1.2px;"
-            "padding:12px 14px 3px;");
+            "color:#2e4d6a; font-size:10px; letter-spacing:1.2px; padding:12px 14px 3px;");
         lay->addWidget(sec);
     };
 
-    m_navHome     = new QPushButton("  Home");
-    m_navTeamInfo = new QPushButton("  Team Info");
-    m_navBrowse   = new QPushButton("  Browse");
-    m_navPlanTrip = new QPushButton("  Plan a Trip");
-    m_navAdmin    = new QPushButton("  Manage Data");
+    m_navHome       = new QPushButton("  Home");
+    m_navTeamInfo   = new QPushButton("  Team Info");
+    m_navBrowse     = new QPushButton("  Browse");
+    m_navPlanTrip   = new QPushButton("  Plan a Trip");
+    m_navViewRoute  = new QPushButton("  View Route");
+    m_navPathViewer = new QPushButton("  Path Viewer");
+    m_navAdmin      = new QPushButton("  Manage Data");
 
     addSection("Main");
     styleNavBtn(m_navHome);
@@ -158,7 +242,14 @@ QWidget* mainwindow::buildSidebar()
 
     addSection("Trip Planner");
     styleNavBtn(m_navPlanTrip);
+    styleNavBtn(m_navViewRoute);
+    m_navViewRoute->setEnabled(false);  // enabled after route is calculated
     lay->addWidget(m_navPlanTrip);
+    lay->addWidget(m_navViewRoute);
+
+    addSection("Graph Tools");
+    styleNavBtn(m_navPathViewer);
+    lay->addWidget(m_navPathViewer);
 
     addSection("Admin");
     styleNavBtn(m_navAdmin);
@@ -166,59 +257,40 @@ QWidget* mainwindow::buildSidebar()
 
     lay->addStretch();
 
-    connect(m_navHome,     &QPushButton::clicked, this, [this]{ setActivePage(m_homePage,         m_navHome); });
-    connect(m_navTeamInfo, &QPushButton::clicked, this, [this]{ setActivePage(m_teamInfoPage,     m_navTeamInfo); });
-    connect(m_navBrowse,   &QPushButton::clicked, this, [this]{ setActivePage(m_browsePage,       m_navBrowse); });
-    connect(m_navPlanTrip, &QPushButton::clicked, this, [this]{ setActivePage(m_stack->widget(3), m_navPlanTrip); });
-    connect(m_navAdmin, &QPushButton::clicked, this, [this]
-    {
-        bool ok;
-        QString password;
-        QString hash;
-        QString expectedHash;
+    // Connections
+    connect(m_navHome,      &QPushButton::clicked, this, [this]{ setActivePage(m_homePage,       m_navHome); });
+    connect(m_navTeamInfo,  &QPushButton::clicked, this, [this]{ setActivePage(m_teamInfoPage,   m_navTeamInfo); });
+    connect(m_navBrowse,    &QPushButton::clicked, this, [this]{ setActivePage(m_browsePage,     m_navBrowse); });
+    connect(m_navPlanTrip,  &QPushButton::clicked, this, [this]{
+        if (m_tripPage) m_tripPage->showPlanPage();
+        setActivePage(m_tripPage, m_navPlanTrip);
+    });
+    connect(m_navViewRoute, &QPushButton::clicked, this, [this]{
+        if (m_tripPage) m_tripPage->showRoutePage();
+        setActivePage(m_tripPage, m_navViewRoute);
+    });
+    connect(m_navPathViewer, &QPushButton::clicked, this, [this]{
+        setActivePage(m_pathViewerPage, m_navPathViewer);
+    });
+    connect(m_navAdmin, &QPushButton::clicked, this, [this] {
+        bool ok = false;
+        QString password = QInputDialog::getText(this,
+            "Admin Login", "Enter administrator password:",
+            QLineEdit::Password, "", &ok);
+        if (!ok) return;
 
-        ok = false;
+        QString hash = QString(QCryptographicHash::hash(
+            QString("cs1d_mlb_admin_salt_%1").arg(password).toUtf8(),
+            QCryptographicHash::Sha256).toHex());
 
-        password = QInputDialog::getText(this,
-                                         "Admin Login",
-                                         "Enter administrator password:",
-                                         QLineEdit::Password,
-                                         "",
-                                         &ok);
-
-        if (!ok)
-        {
-            return;
-        }
-
-        hash = QString(
-            QCryptographicHash::hash(
-                QString("cs1d_mlb_admin_salt_%1").arg(password).toUtf8(),
-                QCryptographicHash::Sha256
-            ).toHex()
-        );
-
-        expectedHash = "757ccc78485530665f59a01a4d4bcf2818d3ef57d68290a0d58021d3f89463ce";
-
-        if (hash != expectedHash)
-        {
-            QMessageBox::warning(this,
-                                 "Access Denied",
-                                 "Incorrect administrator password.");
+        if (hash != "757ccc78485530665f59a01a4d4bcf2818d3ef57d68290a0d58021d3f89463ce") {
+            QMessageBox::warning(this, "Access Denied", "Incorrect administrator password.");
             return;
         }
 
         if (m_adminPage)
-        {
-            AdminWidget *adminWidget;
-
-            adminWidget = qobject_cast<AdminWidget*>(m_adminPage);
-
-            if (adminWidget)
-            {
-                adminWidget->refresh();
-            }
-        }
+            if (auto *aw = qobject_cast<AdminWidget*>(m_adminPage))
+                aw->refresh();
 
         setActivePage(m_adminPage, m_navAdmin);
     });
@@ -226,49 +298,33 @@ QWidget* mainwindow::buildSidebar()
     return sidebar;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
 //  Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
 
 void mainwindow::setActivePage(QWidget *page, QPushButton *activeBtn)
 {
     if (!page || !m_stack) return;
     m_stack->setCurrentWidget(page);
-    for (auto *btn : {m_navHome, m_navTeamInfo, m_navBrowse, m_navPlanTrip, m_navAdmin})
+    for (auto *btn : {m_navHome, m_navTeamInfo, m_navBrowse,
+                      m_navPlanTrip, m_navViewRoute, m_navPathViewer, m_navAdmin})
         styleNavBtn(btn, btn == activeBtn);
 }
 
 void mainwindow::styleNavBtn(QPushButton *btn, bool active)
 {
     if (active) {
-        // Active item: white text, subtle lighter bg, blue left accent strip
         btn->setStyleSheet(
-            "QPushButton{"
-            "  background:#162a45;"
-            "  color:#ffffff;"
-            "  border:none;"
-            "  border-left:2px solid #4a9ade;"
-            "  padding:8px 14px;"
-            "  font-size:12px;"
-            "  text-align:left;"
-            "}"
+            "QPushButton{ background:#162a45; color:#ffffff; border:none;"
+            "  border-left:2px solid #4a9ade; padding:8px 14px;"
+            "  font-size:12px; text-align:left; }"
             "QPushButton:hover{ background:#162a45; }");
     } else {
-        // Inactive: muted mid-blue text, transparent, recedes into sidebar
         btn->setStyleSheet(
-            "QPushButton{"
-            "  background:transparent;"
-            "  color:#5a80a0;"
-            "  border:none;"
-            "  border-left:2px solid transparent;"
-            "  padding:8px 14px;"
-            "  font-size:12px;"
-            "  text-align:left;"
-            "}"
-            "QPushButton:hover{"
-            "  background:#13253d;"
-            "  color:#a0c4e0;"
-            "}");
+            "QPushButton{ background:transparent; color:#5a80a0; border:none;"
+            "  border-left:2px solid transparent; padding:8px 14px;"
+            "  font-size:12px; text-align:left; }"
+            "QPushButton:hover{ background:#13253d; color:#a0c4e0; }");
     }
     btn->setCursor(Qt::PointingHandCursor);
 }
@@ -279,4 +335,13 @@ void mainwindow::updateCartNotification()
     if (m_viewPurchasesButton)
         m_viewPurchasesButton->setText(
             QString("View Purchase Screen (Cart: %1)").arg(count));
+}
+
+void mainwindow::onRouteReady()
+{
+    if (m_navViewRoute) {
+        m_navViewRoute->setEnabled(true);
+        if (m_tripPage) m_tripPage->showRoutePage();
+        setActivePage(m_tripPage, m_navViewRoute);
+    }
 }

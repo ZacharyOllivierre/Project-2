@@ -1,0 +1,18 @@
+# Build artifacts
+*.o
+*.a
+*.dylib
+*.so
+*.exe
+
+# Project binaries produced by src/Makefile
+src/main
+src/traversal_tests
+
+# macOS metadata
+.DS_Store
+
+# Editor / IDE scratch
+*.swp
+*.swo
+*~

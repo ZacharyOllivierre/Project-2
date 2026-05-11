@@ -1,5 +1,7 @@
 #include "Database.h"
 #include "astar/astar.h"
+#include "dfs/dfs.h"
+#include "bfs/bfs.h"
 #include <QCoreApplication>
 #include <unordered_map>
 
@@ -40,6 +42,37 @@ int main(int argc, char *argv[])
     }
     // ── END A* TEST ──────────────────────────────────────────────────────────
 
+
+    // ── DFS REPORT (blake) ───────────────────────────────────────────────────
+    // Report-style traversal: starts at Oracle Park, visits shortest-distance
+    // neighbor first, prints visit order + total mileage. NOT a vacation trip.
+    // UI integration note: wire DFSGraph::performDFSReportFromOraclePark() to
+    // the application's report/display section, not the vacation planner.
+    {
+        DFSGraph dfs;
+        dfs.buildFromDistances(db.GetStadiumDistancesVector());
+
+        cout << "\n";
+        DFSResult dr = dfs.performDFSReportFromOraclePark();
+        dfs.printResult(dr);
+    }
+    // ── END DFS REPORT ───────────────────────────────────────────────────────
+
+
+    // ── BFS REPORT (blake) ───────────────────────────────────────────────────
+    // Report-style traversal: starts at Target Field, enqueues neighbors in
+    // ascending mileage order. NOT a vacation trip.
+    // UI integration note: wire BFSGraph::performBFSReportFromTargetField() to
+    // the application's report/display section, not the vacation planner.
+    {
+        BFSGraph bfs;
+        bfs.buildFromDistances(db.GetStadiumDistancesVector());
+
+        cout << "\n";
+        BFSResult br = bfs.performBFSReportFromTargetField();
+        bfs.printResult(br);
+    }
+    // ── END BFS REPORT ───────────────────────────────────────────────────────
 
 
     return 0;

@@ -34,7 +34,9 @@ private:
 
     QPushButton* m_viewPurchasesButton = nullptr;
     QPushButton* m_mstButton = nullptr;
+    QPushButton* m_resetCartButton = nullptr;
 
     void updateCartNotification();
     void showMSTResult();
+    void resetShoppingCart();
 };

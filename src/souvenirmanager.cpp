@@ -22,8 +22,8 @@ void SouvenirManager::buySouvenir(const QString &stadiumName, const SouvenirItem
 
     bool found = false;
 
-        // Check if this souvenir was already purchased before
-for (PurchasedItem &purchase : purchases) {
+    // If the item is already in this stadium cart, only increase the quantity.
+    for (PurchasedItem &purchase : purchases) {
         if (purchase.name == item.name) {
             purchase.quantity += quantity;
             found = true;
@@ -31,6 +31,7 @@ for (PurchasedItem &purchase : purchases) {
         }
     }
 
+    // If this is a new item, add it as a new purchase row.
     if (!found) {
         PurchasedItem newPurchase;
         newPurchase.name = item.name;
@@ -39,8 +40,8 @@ for (PurchasedItem &purchase : purchases) {
         purchases.append(newPurchase);
     }
 
-        // Update totals after purchase
-double addedCost = item.price * quantity;
+    // Add the new purchase cost to the stadium total and grand total.
+    double addedCost = item.price * quantity;
     m_stadiumTotals[stadiumName] += addedCost;
     m_grandTotal += addedCost;
 }
@@ -93,4 +94,14 @@ int SouvenirManager::getTotalItemCount() const
     }
 
     return totalCount;
+}
+
+/**
+ * Empty the shopping cart and reset all purchase totals.
+ */
+void SouvenirManager::clearCart()
+{
+    m_purchasesByStadium.clear();
+    m_stadiumTotals.clear();
+    m_grandTotal = 0.0;
 }

@@ -68,26 +68,74 @@ void mainwindow::showMSTResult()
     QList<GraphEdge> mstEdges = m_stadiumGraph.primMST(startStadium);
     int totalMileage = m_stadiumGraph.getTotalMileage(mstEdges);
 
+    int totalStadiums = stadiums.size();
+    int expectedEdges = totalStadiums - 1;
+    bool mstComplete = (mstEdges.size() == expectedEdges);
+
     QString result;
     result += "Minimum Spanning Tree using Prim's Algorithm\n\n";
-    result += "Starting Stadium: " + startStadium + "\n\n";
+    result += "Starting Stadium: " + startStadium + "\n";
+    result += QString("Total Stadiums: %1\n").arg(totalStadiums);
+    result += QString("MST Edges Found: %1\n").arg(mstEdges.size());
+    result += QString("Expected MST Edges: %1\n").arg(expectedEdges);
+    result += QString("MST Verification: %1\n\n")
+                  .arg(mstComplete ? "PASSED" : "FAILED - graph may be disconnected");
 
     for (const GraphEdge& edge : mstEdges)
     {
         result += QString("%1  ->  %2  :  %3 miles\n")
-        .arg(edge.from)
-            .arg(edge.to)
-            .arg(edge.distance);
+                      .arg(edge.from)
+                      .arg(edge.to)
+                      .arg(edge.distance);
     }
 
     result += "\nAssociated MST Mileage: ";
     result += QString::number(totalMileage);
     result += " miles";
 
+    if (!mstComplete)
+    {
+        QMessageBox::warning(
+            this,
+            "Minimum Spanning Tree Verification",
+            result
+            );
+        return;
+    }
+
     QMessageBox::information(
         this,
         "Minimum Spanning Tree",
         result
+        );
+}
+
+void mainwindow::resetShoppingCart()
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Reset Shopping Cart",
+        "Are you sure you want to clear all souvenir purchases?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply != QMessageBox::Yes)
+    {
+        return;
+    }
+
+    m_souvenirManager.clearCart();
+    updateCartNotification();
+
+    if (m_purchaseWindow != nullptr)
+    {
+        m_purchaseWindow->refreshScreen();
+    }
+
+    QMessageBox::information(
+        this,
+        "Shopping Cart Reset",
+        "The shopping cart has been cleared."
         );
 }
 
@@ -140,6 +188,24 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
         "}"
         );
 
+    m_resetCartButton = new QPushButton("Reset Shopping Cart");
+    m_resetCartButton->setStyleSheet(
+        "QPushButton {"
+        "background-color: #f97316;"
+        "color: white;"
+        "font-weight: 600;"
+        "border: 1px solid #fb923c;"
+        "border-radius: 8px;"
+        "padding: 8px 14px;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: #fb923c;"
+        "}"
+        "QPushButton:pressed {"
+        "background-color: #ea580c;"
+        "}"
+        );
+
     QListWidget* teamList = new QListWidget();
     teamList->setMaximumWidth(240);
 
@@ -150,6 +216,7 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
 
     leftLayout->addWidget(m_viewPurchasesButton);
     leftLayout->addWidget(m_mstButton);
+    leftLayout->addWidget(m_resetCartButton);
     leftLayout->addWidget(teamList);
 
     TeamInfoWidget* teamInfo = new TeamInfoWidget(&m_souvenirManager, m_database);
@@ -185,6 +252,12 @@ void mainwindow::loadTeams(const std::vector<mlbInfo>& teams)
             [this]()
             {
                 showMSTResult();
+            });
+
+    connect(m_resetCartButton, &QPushButton::clicked, this,
+            [this]()
+            {
+                resetShoppingCart();
             });
 
     connect(teamInfo, &TeamInfoWidget::cartUpdated, this,

@@ -75,6 +75,12 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
                     setActivePage(m_tripPage, m_navPlanTrip);
                 });
 
+        connect(home, &homepage::toPathViewerWidget, this, [this]()
+                {
+                setActivePage(m_pathViewerPage, m_navPathViewer);
+                });
+
+        // For the top two boxes to count team and stadium count
         int teamCount = static_cast<int>(teams.size());
 
         QSet<QString> uniqueStadiums;

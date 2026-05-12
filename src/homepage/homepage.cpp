@@ -13,21 +13,19 @@ homepage::homepage(QWidget *parent)
     ui->browseBox->setCursor(Qt::PointingHandCursor);
     ui->teamInfoBox->setCursor(Qt::PointingHandCursor);
     ui->tripPlannerBox->setCursor(Qt::PointingHandCursor);
+    ui->pathViewerBox->setCursor(Qt::PointingHandCursor);
 
     // Install event filters on the group boxes
     ui->browseBox->installEventFilter(this);
     ui->teamInfoBox->installEventFilter(this);
     ui->tripPlannerBox->installEventFilter(this);
+    ui->pathViewerBox->installEventFilter(this);
 
     // Also install them on the text edits because QTextEdit can steal the mouse click
     ui->browseText->installEventFilter(this);
     ui->teamInfoText->installEventFilter(this);
     ui->tripPlannerText->installEventFilter(this);
-
-    // Optional: make text boxes not editable
-    ui->browseText->setReadOnly(true);
-    ui->teamInfoText->setReadOnly(true);
-    ui->tripPlannerText->setReadOnly(true);
+    ui->pathViewerText->installEventFilter(this);
 }
 
 homepage::~homepage()
@@ -58,6 +56,13 @@ bool homepage::eventFilter(QObject *watched, QEvent *event)
         if (watched == ui->tripPlannerBox || watched == ui->tripPlannerText)
         {
             emit toTripPlannerWidget();
+            return true;
+        }
+
+        // Check if path viewer box or its text was clicked
+        if (watched == ui->pathViewerBox || watched == ui->pathViewerText)
+        {
+            emit toPathViewerWidget();
             return true;
         }
     }

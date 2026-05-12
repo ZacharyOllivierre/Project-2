@@ -21,6 +21,7 @@ signals:
     void toBrowseWidget();
     void toTeamInfoWidget();
     void toTripPlannerWidget();
+    void toPathViewerWidget();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;

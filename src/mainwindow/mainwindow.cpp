@@ -326,6 +326,21 @@ QWidget* mainwindow::buildSidebar()
     });
     lay->addWidget(m_viewPurchasesButton);
 
+    // Shopping cart reset
+    m_resetCartButton = new QPushButton("Reset Shopping Cart");
+    m_resetCartButton->setStyleSheet(
+        "QPushButton{ background:#5c1a1a; color:#c8e0f4; border:none;"
+        "  border-bottom:1px solid #1a2d45; padding:9px 14px;"
+        "  font-size:11px; font-weight:600; text-align:left; }"
+        "QPushButton:hover{ background:#7a2222; color:#ffffff; }");
+    m_resetCartButton->setCursor(Qt::PointingHandCursor);
+
+    connect(m_resetCartButton, &QPushButton::clicked,
+            this, &mainwindow::resetShoppingCart);
+
+    lay->addWidget(m_resetCartButton);
+
+    // End of shopping cart reset
     auto addSection = [&](const QString &label) {
         QLabel *sec = new QLabel(label.toUpper());
         sec->setStyleSheet(
@@ -446,6 +461,41 @@ void mainwindow::updateCartNotification()
     if (m_viewPurchasesButton)
         m_viewPurchasesButton->setText(
             QString("View Purchase Screen (Cart: %1)").arg(count));
+}
+
+// Reset Shopping cart costs and items
+void mainwindow::resetShoppingCart()
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Reset Shopping Cart",
+        "Are you sure you want to clear all souvenir purchases?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply != QMessageBox::Yes)
+    {
+        return;
+    }
+
+    m_souvenirManager.clearCart();
+    updateCartNotification();
+
+    if (m_purchaseWindow != nullptr)
+    {
+        m_purchaseWindow->refreshScreen();
+    }
+
+    QMessageBox::information(
+        this,
+        "Shopping Cart Reset",
+        "The shopping cart has been cleared."
+        );
+
+    if (m_tripPage != nullptr)
+    {
+        m_tripPage->refreshCartTotal();
+    }
 }
 
 void mainwindow::onRouteReady()

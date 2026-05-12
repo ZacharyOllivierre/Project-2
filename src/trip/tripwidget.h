@@ -37,6 +37,7 @@ public:
     void refresh();
     void showPlanPage();   // called by mainwindow nav
     void showRoutePage();  // called by mainwindow nav
+    void refreshCartTotal(); // Resets price total in trip planner when cart is reset
 
 signals:
     void cartUpdated();

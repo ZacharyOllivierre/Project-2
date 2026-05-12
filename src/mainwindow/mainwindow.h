@@ -25,6 +25,7 @@ public:
 
 private slots:
     void updateCartNotification();
+    void resetShoppingCart();
     void onRouteReady();
 
 private:
@@ -35,20 +36,22 @@ private:
     QPushButton    *m_viewPurchasesButton = nullptr;
     QStackedWidget *m_stack               = nullptr;
 
-    QWidget        *m_homePage       = nullptr;
-    TeamInfoWidget *m_teamInfoPage   = nullptr;
-    BrowseWidget   *m_browsePage     = nullptr;
-    TripWidget     *m_tripPage       = nullptr;
-    QWidget        *m_pathViewerPage = nullptr;
-    AdminWidget    *m_adminPage      = nullptr;
+    QWidget        *m_homePage        = nullptr;
+    TeamInfoWidget *m_teamInfoPage    = nullptr;
+    BrowseWidget   *m_browsePage      = nullptr;
+    TripWidget     *m_tripPage        = nullptr;
+    QWidget        *m_pathViewerPage  = nullptr;
+    AdminWidget    *m_adminPage       = nullptr;
 
-    QPushButton    *m_navHome        = nullptr;
-    QPushButton    *m_navTeamInfo    = nullptr;
-    QPushButton    *m_navBrowse      = nullptr;
-    QPushButton    *m_navPlanTrip    = nullptr;
-    QPushButton    *m_navViewRoute   = nullptr;
-    QPushButton    *m_navPathViewer  = nullptr;
-    QPushButton    *m_navAdmin       = nullptr;
+    QPushButton    *m_navHome         = nullptr;
+    QPushButton    *m_navTeamInfo     = nullptr;
+    QPushButton    *m_navBrowse       = nullptr;
+    QPushButton    *m_navPlanTrip     = nullptr;
+    QPushButton    *m_navViewRoute    = nullptr;
+    QPushButton    *m_navPathViewer   = nullptr;
+    QPushButton    *m_resetCartButton = nullptr;
+    QPushButton    *m_navAdmin        = nullptr;
+
 
     QWidget* buildSidebar();
     QWidget* buildPathViewerPage();

@@ -676,3 +676,13 @@ void TripWidget::styleCombo(QComboBox *c)
         "QComboBox QAbstractItemView{ background:#0f1e30; border:1px solid #1a2d45;"
         "  selection-background-color:#1e4a70; color:#b8d4ec; }");
 }
+
+void TripWidget::refreshCartTotal()
+{
+    if (m_lblTotalSpent != nullptr)
+    {
+        m_lblTotalSpent->setText(
+            QString("$%1 spent").arg(m_mgr ? (m_mgr->getGrandTotal()): 0.0, 0, 'f', 2)
+            );
+    }
+}

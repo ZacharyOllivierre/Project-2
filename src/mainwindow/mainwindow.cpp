@@ -18,6 +18,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QWidget>
+#include <QSet>
 
 mainwindow::mainwindow(QWidget *parent)
     : QMainWindow(parent)
@@ -49,6 +50,46 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
     m_homePage = new homepage;
     m_homePage->setStyleSheet("background:#0d1c2e;");
     m_stack->addWidget(m_homePage);
+    // Homepage box navigation
+    homepage *home = qobject_cast<homepage*>(m_homePage);
+
+    if (home)
+    {
+        connect(home, &homepage::toTeamInfoWidget, this, [this]()
+                {
+                    setActivePage(m_teamInfoPage, m_navTeamInfo);
+                });
+
+        connect(home, &homepage::toBrowseWidget, this, [this]()
+                {
+                    setActivePage(m_browsePage, m_navBrowse);
+                });
+
+        connect(home, &homepage::toTripPlannerWidget, this, [this]()
+                {
+                    if (m_tripPage)
+                    {
+                        m_tripPage->showPlanPage();
+                    }
+
+                    setActivePage(m_tripPage, m_navPlanTrip);
+                });
+
+        int teamCount = static_cast<int>(teams.size());
+
+        QSet<QString> uniqueStadiums;
+
+        for (const mlbInfo &team : teams)
+        {
+            uniqueStadiums.insert(QString::fromStdString(team.stadiumName).trimmed());
+        }
+
+        int stadiumCount = uniqueStadiums.size();
+
+        home->setDatabaseCounts(teamCount, stadiumCount);
+    }
+
+    setActivePage(m_homePage, m_navHome);
 
     // Page 1 — Team Info (now has its own team list sidebar)
     m_teamInfoPage = new TeamInfoWidget(&m_souvenirManager, m_db);

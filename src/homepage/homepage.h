@@ -15,6 +15,8 @@ public:
     explicit homepage(QWidget *parent = nullptr);
     ~homepage();
 
+    void setDatabaseCounts(int teamCount, int stadiumCount);
+
 signals:
     void toBrowseWidget();
     void toTeamInfoWidget();

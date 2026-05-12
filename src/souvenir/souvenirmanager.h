@@ -1,3 +1,8 @@
+/**
+ * @file souvenirmanager.h
+ * @brief Declares souvenir and purchase structures plus the manager that tracks purchases and totals.
+ */
+
 #pragma once
 
 #include <QList>
@@ -64,6 +69,11 @@ public:
      * Example: 2 hats + 3 bats = 5 items.
      */
     int getTotalItemCount() const;
+
+    /**
+     * Empty the whole shopping cart and reset all totals.
+     */
+    void clearCart();
 
 private:
     // stadium -> list of purchased items

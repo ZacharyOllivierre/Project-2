@@ -1,3 +1,8 @@
+/**
+ * @file souvenirmanager.cpp
+ * @brief Implements souvenir purchase tracking, stadium subtotals, cart item count, and grand total calculation.
+ */
+
 #include "souvenirmanager.h"
 
 /**
@@ -17,6 +22,7 @@ void SouvenirManager::buySouvenir(const QString &stadiumName, const SouvenirItem
 
     bool found = false;
 
+    // If the item is already in this stadium cart, only increase the quantity.
     for (PurchasedItem &purchase : purchases) {
         if (purchase.name == item.name) {
             purchase.quantity += quantity;
@@ -25,6 +31,7 @@ void SouvenirManager::buySouvenir(const QString &stadiumName, const SouvenirItem
         }
     }
 
+    // If this is a new item, add it as a new purchase row.
     if (!found) {
         PurchasedItem newPurchase;
         newPurchase.name = item.name;
@@ -33,6 +40,7 @@ void SouvenirManager::buySouvenir(const QString &stadiumName, const SouvenirItem
         purchases.append(newPurchase);
     }
 
+    // Add the new purchase cost to the stadium total and grand total.
     double addedCost = item.price * quantity;
     m_stadiumTotals[stadiumName] += addedCost;
     m_grandTotal += addedCost;
@@ -86,4 +94,14 @@ int SouvenirManager::getTotalItemCount() const
     }
 
     return totalCount;
+}
+
+/**
+ * Empty the shopping cart and reset all purchase totals.
+ */
+void SouvenirManager::clearCart()
+{
+    m_purchasesByStadium.clear();
+    m_stadiumTotals.clear();
+    m_grandTotal = 0.0;
 }

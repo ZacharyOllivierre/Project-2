@@ -65,6 +65,11 @@ public:
      */
     int getTotalItemCount() const;
 
+    /**
+     * Clear all purchases and reset totals.
+     */
+    void clearCart();
+
 private:
     // stadium -> list of purchased items
     QMap<QString, QList<PurchasedItem>> m_purchasesByStadium;

@@ -89,6 +89,9 @@ void BrowseWidget::initSortTypeCombo()
     ui->sortTypeCombo->addItem("Seating Capacity");
     ui->sortTypeCombo->addItem("Date Opened");
     ui->sortTypeCombo->addItem("Distance to Center Field");
+    ui->sortTypeCombo->addItem("Park Typology");
+    ui->sortTypeCombo->addItem("Greatest Distance to Center Field");
+    ui->sortTypeCombo->addItem("Smallest Distance to Center Field");
 }
 
 void BrowseWidget::initTable()
@@ -129,6 +132,60 @@ void BrowseWidget::populateTable()
         {
             filteredList.push_back(team);
         }
+    }
+
+    // Do greatest and smallest center field filter by hand
+    if (sortType == SortType::GreatestCenterField)
+    {
+        int maxDistance = -1;
+
+        for (auto& team : filteredList)
+        {
+            int distance = stoi(team.distanceToCenterField);
+
+            if (distance > maxDistance)
+            {
+                maxDistance = distance;
+            }
+        }
+
+        vector<mlbInfo> greatestList;
+
+        for (auto& team : filteredList)
+        {
+            if (stoi(team.distanceToCenterField) == maxDistance)
+            {
+                greatestList.push_back(team);
+            }
+        }
+
+        filteredList = greatestList;
+    }
+    else if (sortType == SortType::SmallestCenterField)
+    {
+        int minDistance = stoi(filteredList[0].distanceToCenterField);
+
+        for (auto& team : filteredList)
+        {
+            int distance = stoi(team.distanceToCenterField);
+
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+            }
+        }
+
+        vector<mlbInfo> smallestList;
+
+        for (auto& team : filteredList)
+        {
+            if (stoi(team.distanceToCenterField) == minDistance)
+            {
+                smallestList.push_back(team);
+            }
+        }
+
+        filteredList = smallestList;
     }
 
     // Get sorted list
@@ -178,7 +235,6 @@ void BrowseWidget::sortData(vector<mlbInfo>& data)
         sort(data.begin(), data.end(),
              [](const mlbInfo& a, const mlbInfo& b)
              {return a.teamName < b.teamName; });
-
         break;
 
     case SortType::StadiumName:
@@ -186,7 +242,6 @@ void BrowseWidget::sortData(vector<mlbInfo>& data)
         sort(data.begin(), data.end(),
              [](const mlbInfo& a, const mlbInfo& b)
              {return a.stadiumName < b.stadiumName;});
-
         break;
 
     case SortType::SeatingCapacity:
@@ -194,7 +249,6 @@ void BrowseWidget::sortData(vector<mlbInfo>& data)
         sort(data.begin(), data.end(),
              [](const mlbInfo& a, const mlbInfo& b)
              {return a.seatingCapacity < b.seatingCapacity;});
-
         break;
 
     case SortType::DateOpened:
@@ -202,7 +256,6 @@ void BrowseWidget::sortData(vector<mlbInfo>& data)
         sort(data.begin(), data.end(),
              [](const mlbInfo& a, const mlbInfo& b)
              {return a.dateOpened < b.dateOpened;});
-
         break;
 
     case SortType::DistanceToCenter:
@@ -210,7 +263,16 @@ void BrowseWidget::sortData(vector<mlbInfo>& data)
         sort(data.begin(), data.end(),
              [](const mlbInfo& a, const mlbInfo& b)
              {return std::stoi(a.distanceToCenterField) < std::stoi(b.distanceToCenterField);});
+        break;
 
+    case SortType::ParkTypology:
+
+        sort(data.begin(), data.end(),
+             [](const mlbInfo& a, const mlbInfo& b)
+             {return a.ballparkTypology < b.ballparkTypology;});
+        break;
+
+    default:
         break;
     }
 }

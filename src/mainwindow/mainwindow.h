@@ -51,6 +51,7 @@ private:
     QPushButton    *m_navViewRoute   = nullptr;
     QPushButton    *m_navPathViewer  = nullptr;
     QPushButton    *m_navAdmin       = nullptr;
+     QPushButton* m_resetCartButton = nullptr;
 
     GraphVisualizer *m_pathVisualizer = nullptr;
 
@@ -58,4 +59,5 @@ private:
     QWidget* buildPathViewerPage();
     void     setActivePage(QWidget *page, QPushButton *activeBtn);
     void     styleNavBtn(QPushButton *btn, bool active = false);
+    void resetShoppingCart();
 };

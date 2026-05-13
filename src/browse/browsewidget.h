@@ -18,7 +18,10 @@ enum class SortType
     StadiumName,
     SeatingCapacity,
     DateOpened,
-    DistanceToCenter
+    DistanceToCenter,
+    ParkTypology,
+    GreatestCenterField,
+    SmallestCenterField
 };
 
 QT_BEGIN_NAMESPACE

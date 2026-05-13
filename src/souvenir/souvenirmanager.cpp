@@ -87,3 +87,10 @@ int SouvenirManager::getTotalItemCount() const
 
     return totalCount;
 }
+
+void SouvenirManager::clearCart()
+{
+    m_purchasesByStadium.clear();
+    m_stadiumTotals.clear();
+    m_grandTotal = 0.0;
+}

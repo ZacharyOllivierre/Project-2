@@ -529,6 +529,7 @@ QWidget* AdminWidget::buildPricingTab()
                 loadPricingTable(m_cmbPricingTeam->currentText());
 
                 emit souvenirDataChanged();
+                emit dataReloaded();
 
                 QMessageBox::information(this,
                                          "Saved",
@@ -580,6 +581,7 @@ QWidget* AdminWidget::buildPricingTab()
                 loadPricingTable(m_cmbPricingTeam->currentText());
 
                 emit souvenirDataChanged();
+                emit dataReloaded();
 
                 QMessageBox::information(this,
                                          "Deleted",
@@ -693,6 +695,7 @@ QWidget* AdminWidget::buildDatabaseTab()
                 refresh();
 
                 emit souvenirDataChanged();
+                emit dataReloaded();
 
                 QMessageBox::information(
                     this,
@@ -741,6 +744,7 @@ QWidget* AdminWidget::buildDatabaseTab()
                 refresh();
 
                 emit souvenirDataChanged();
+                emit dataReloaded();
 
                 QMessageBox::information(
                     this,
@@ -1580,6 +1584,7 @@ void AdminWidget::onSaveStadium()
     clearStadiumForm();
 
     emit souvenirDataChanged();
+    emit dataReloaded();
 
     QMessageBox::information(this,
                              "Saved",
@@ -1628,6 +1633,7 @@ void AdminWidget::onDeleteStadium()
     clearStadiumForm();
 
     emit souvenirDataChanged();
+    emit dataReloaded();
 
     QMessageBox::information(this,
                              "Deleted",
@@ -1670,6 +1676,7 @@ void AdminWidget::onSaveSouvenir()
         if (m_cmbPricingTeam->currentText() == s.teamName)
             loadPricingTable(s.teamName);
         emit souvenirDataChanged();
+        emit dataReloaded();
     } else {
         QMessageBox::critical(this, "Error", "Failed to save souvenir.");
     }
@@ -1685,6 +1692,7 @@ void AdminWidget::onDeleteSouvenir()
         loadSouvenirTable(team);
         if (m_cmbPricingTeam->currentText() == team) loadPricingTable(team);
         emit souvenirDataChanged();
+        emit dataReloaded();
     }
 }
 
@@ -1726,6 +1734,7 @@ void AdminWidget::onSaveAllPrices()
     if (m_cmbSouvenirTeam->currentText() == m_cmbPricingTeam->currentText())
         loadSouvenirTable(m_cmbSouvenirTeam->currentText());
     emit souvenirDataChanged();
+    emit dataReloaded();
     if (failed == 0)
         QMessageBox::information(this, "Saved", QString("%1 price(s) updated.").arg(saved));
     else

@@ -17,6 +17,9 @@ Result run(const std::string& start,
     };
     trimmedStart = trim(trimmedStart);
     trimmedGoal  = trim(trimmedGoal);
+    // Normalize aliases
+    if (trimmedStart == "Minute Maid Park") trimmedStart = "Daikin Park";
+    if (trimmedGoal  == "Minute Maid Park") trimmedGoal  = "Daikin Park";
 
     // Build graph with trimmed names so lookups always match
     AStarGraph g;
@@ -24,8 +27,12 @@ Result run(const std::string& start,
     std::vector<stadiumDistances> trimmedDist;
     for (const auto &d : distances) {
         stadiumDistances td = d;
-        td.originatedStadium  = trim(d.originatedStadium);
-        td.destinationStadium = trim(d.destinationStadium);
+        std::string orig = trim(d.originatedStadium);
+        std::string dest = trim(d.destinationStadium);
+        if (orig == "Minute Maid Park") orig = "Daikin Park";
+        if (dest == "Minute Maid Park") dest = "Daikin Park";
+        td.originatedStadium  = orig;
+        td.destinationStadium = dest;
         trimmedDist.push_back(td);
     }
     g.buildFromDistances(trimmedDist);

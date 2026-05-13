@@ -14,6 +14,7 @@ class TeamInfoWidget;
 class AdminWidget;
 class BrowseWidget;
 class TripWidget;
+class GraphVisualizer;
 
 class mainwindow : public QMainWindow
 {
@@ -26,6 +27,7 @@ public:
 private slots:
     void updateCartNotification();
     void onRouteReady();
+    void onDataReloaded();
 
 private:
     SouvenirManager  m_souvenirManager;
@@ -49,6 +51,8 @@ private:
     QPushButton    *m_navViewRoute   = nullptr;
     QPushButton    *m_navPathViewer  = nullptr;
     QPushButton    *m_navAdmin       = nullptr;
+
+    GraphVisualizer *m_pathVisualizer = nullptr;
 
     QWidget* buildSidebar();
     QWidget* buildPathViewerPage();

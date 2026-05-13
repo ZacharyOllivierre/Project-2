@@ -4,12 +4,17 @@
 
 int BFSGraph::getOrAddNode(const std::string& name)
 {
-    auto it = nameToIdx.find(name);
+    // Trim whitespace so "Angel Stadium  " and "Angel Stadium" map to same node
+    std::string trimmed = name;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+    trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+
+    auto it = nameToIdx.find(trimmed);
     if (it != nameToIdx.end()) return it->second;
 
     int idx = (int)idxToName.size();
-    nameToIdx[name] = idx;
-    idxToName.push_back(name);
+    nameToIdx[trimmed] = idx;
+    idxToName.push_back(trimmed);
     adjList.push_back({});
     return idx;
 }
@@ -54,8 +59,13 @@ void BFSGraph::buildFromDistances(const std::vector<stadiumDistances>& dist)
 
     for (const auto& sd : dist)
     {
-        int u = getOrAddNode(sd.originatedStadium);
-        int v = getOrAddNode(sd.destinationStadium);
+        std::string orig = sd.originatedStadium;
+        std::string dest = sd.destinationStadium;
+        // Normalize stadium name aliases
+        if (orig == "Minute Maid Park") orig = "Daikin Park";
+        if (dest == "Minute Maid Park") dest = "Daikin Park";
+        int u = getOrAddNode(orig);
+        int v = getOrAddNode(dest);
         addUndirectedEdge(u, v, sd.distance);
     }
 

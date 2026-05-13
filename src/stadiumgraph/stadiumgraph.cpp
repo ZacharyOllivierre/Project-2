@@ -9,27 +9,34 @@
  * Add an undirected connection.
  * The edge is stored in both directions.
  */
+static QString normSG(const QString &s) {
+    if (s.trimmed() == "Minute Maid Park") return "Daikin Park";
+    return s.trimmed();
+}
+
 void StadiumGraph::addEdge(const QString& from,
                            const QString& to,
                            int distance)
 {
-    if (from.isEmpty() || to.isEmpty() || distance <= 0)
+    QString f = normSG(from);
+    QString t = normSG(to);
+    if (f.isEmpty() || t.isEmpty() || distance <= 0)
     {
         return;
     }
 
     GraphEdge forwardEdge;
-    forwardEdge.from = from;
-    forwardEdge.to = to;
+    forwardEdge.from = f;
+    forwardEdge.to = t;
     forwardEdge.distance = distance;
 
     GraphEdge reverseEdge;
-    reverseEdge.from = to;
-    reverseEdge.to = from;
+    reverseEdge.from = t;
+    reverseEdge.to = f;
     reverseEdge.distance = distance;
 
-    m_adjacencyList[from].append(forwardEdge);
-    m_adjacencyList[to].append(reverseEdge);
+    m_adjacencyList[f].append(forwardEdge);
+    m_adjacencyList[t].append(reverseEdge);
 }
 
 /**

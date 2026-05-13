@@ -40,6 +40,10 @@ qt_add_executable(Project2
     src/dfs/dfs.cpp
     src/bfs/bfs.h
     src/bfs/bfs.cpp
+    src/dijkstra/dijkstra.h
+    src/dijkstra/dijkstra.cpp
+    src/graph/graphactionbuffer.h
+    src/graph/graphactionbuffer.cpp
 )
 target_link_libraries(Project2 PRIVATE
     Qt6::Widgets

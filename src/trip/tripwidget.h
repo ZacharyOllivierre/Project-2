@@ -20,6 +20,8 @@
 #include "../souvenir/souvenirmanager.h"
 #include "../stadiumgraph/stadiumgraph.h"
 #include "../trip/astarrunner.h"
+#include "../dijkstra/dijkstra.h"
+#include "../graph/graphactionbuffer.h"
 
 struct TripStop
 {
@@ -40,13 +42,18 @@ public:
 
 signals:
     void cartUpdated();
-    void routeReady();  // emitted when Calculate Route succeeds
+    void routeReady();
+    void animateRoute(const GraphActionBuffer &buf);  // emitted when Calculate Route succeeds
 
 private slots:
     void onCalculateRoute();
     void onModeChanged(QAbstractButton *btn);
     void onBackToPlanner();
     void onBuyStop();
+    void onAnimateRoute();
+    void onAddMultiStop();
+    void onRemoveMultiStop();
+    void onRebuildMultiStopNames();
     void onStopSelected(int row);
 
 private:
@@ -57,8 +64,10 @@ private:
 
     // Algorithms — A* and MST are wired; others are placeholders
     QList<TripStop> runAstar(const QString &start, const QString &end);
-    QList<TripStop> runDijkstra(const QString &start, const QString &end);
     QList<TripStop> runMST(const QString &start);
+    QList<TripStop> runMarlinsGreedy();
+    QList<TripStop> runMultiStop(const QStringList &stops, bool useAstar);
+    QList<TripStop> runDijkstraMulti(const QStringList &waypoints);  // Dijkstra nearest-neighbor from Marlins
     QList<TripStop> runDFS(const QString &start);
     QList<TripStop> runBFS(const QString &start);
 
@@ -90,6 +99,10 @@ private:
     QComboBox       *m_cmbStartSolo  = nullptr;   // used in page 1 (start-only)
     QLabel          *m_lblFixedStart = nullptr;   // used in page 2 (fixed start)
 
+    // Multi-stop
+    QVBoxLayout    *m_multiStopLayout  = nullptr;
+    QStringList     m_multiStopNames;
+
     // Route page
     QListWidget     *m_stopList      = nullptr;
     QLabel          *m_lblTotalMiles = nullptr;
@@ -98,5 +111,6 @@ private:
     QListWidget     *m_souvenirList  = nullptr;
     QSpinBox        *m_spnQty        = nullptr;
     QPushButton     *m_btnBuy        = nullptr;
+    QPushButton     *m_btnAnimate    = nullptr;
     QList<SouvenirItem> m_stopSouvenirs;
 };

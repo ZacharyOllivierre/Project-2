@@ -11,18 +11,10 @@
 #include <QPointF>
 #include <vector>
 #include <QRandomGenerator>
+#include <QTimer>
 
 #include "../database/database.h"
-
-/*The map can be updated live by connecting an emitting signal to these slots
- For example:
-
-Pathing class emits nodeOpened signal
-    emit nodeOpened(currentNodeName);
-
-Outside of both classes connect signals
-    connect(astar, &AStar::nodeOpened, graphVisualizer, &GraphVisualizer::setNodeOpen);
-*/
+#include "graphactionbuffer.h"
 
 enum class NodeState
 {
@@ -34,22 +26,45 @@ enum class NodeState
     Goal
 };
 
-struct Node
+enum class EdgeState
 {
-    // Unique identifier
-    QString stadiumName;
-
-    QPointF pos;
-    NodeState state = NodeState::Default;
+    Default,
+    Open,
+    Closed,
+    Path
 };
 
-// Change from and to to Node pointers
+struct Node
+{
+    QString stadiumName;
+    QPointF pos;
+};
+
 struct Edge
 {
     QString from;
     QString to;
     double weight;
 };
+
+struct NodeVisual
+{
+    Node* node;
+
+    NodeState state = NodeState::Default;
+
+    QGraphicsEllipseItem* ellipse = nullptr;
+    QGraphicsTextItem* label = nullptr;
+};
+
+struct EdgeVisual
+{
+    Edge* edge;
+
+    EdgeState state = EdgeState::Default;
+    QGraphicsLineItem* line = nullptr;
+};
+
 
 class GraphVisualizer : public QGraphicsView
 {
@@ -61,25 +76,17 @@ public:
     void updateGraphData(const std::vector<mlbInfo>& teams,
                         const std::vector<stadiumDistances> dist);
 
-    void loadGraph(int nodeSize = 20, int edgeWidth = 2);
+    void loadGraph(int nodeSize = 30, int edgeWidth = 5);
 
 public slots:
-    void setNodeStart(const QString& stadiumName);
-    void setNodeEnd(const QString& stadiumName);
-
-    void setNodeOpen(const QString& stadiumName);
-
-    void setNodeClosed(const QString& stadiumName);
-
-    // Can set path by QStringList of stadium names or mlbInfo vec
-    void setPath(const QStringList& pathStadiumNames);
-    void setPath(const std::vector<mlbInfo> pathMlbInfo);
-
-    // Sets one node to path state
-    void setPath(const QString& stadiumName);
+    // Slot that accepts action buffer and plays it with staggering delay
+    void playActions(const GraphActionBuffer& buffer, int delay = 50);
 
     // Rerolls generation of graph visual, resets vals to default size
     void rerollGraph();
+
+    // Recolors and resets states
+    void resetGraph();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -90,14 +97,14 @@ private:
     std::vector<Node> nodes;
     std::vector<Edge> edges;
 
-    // Holds nodes (circles) accessed by stadiumName
-    QMap<QString, QGraphicsEllipseItem*> nodeItems;
-
-    // Hodls edges of nodes
-    QVector<QGraphicsLineItem*> edgeItems;
+    // Holds visual objects, accessed by stadium name
+    QMap<QString, NodeVisual*> nodeItems;
+    // Holds edge visual objects, accessed by to<->from key
+    QMap<QString, EdgeVisual*> edgeItems;
 
     // Maps node state to color
-    QHash <NodeState, QColor> colors;
+    QHash <NodeState, QColor> nodeColors;
+    QHash <EdgeState, QColor> edgeColors;
 
     // Updates default positions of nodes
     void computeLayout();
@@ -105,7 +112,14 @@ private:
     // Scales map to fit within bounds
     void fitGraphToView(float margin);
 
+    // Gives key for edge items
+    QString getEdgeKey(const QString& from, const QString& to);
+
+    void clearData();
+
     void setNodeState(const QString& stadiumName, NodeState state);
+    void setEdgeState(const QString& from, const QString& to, EdgeState state);
+    void doAction(const Action& action);
 };
 
 #endif // GRAPHVISUALIZER_H

@@ -46,6 +46,7 @@ public:
 
 signals:
     void souvenirDataChanged();
+    void dataReloaded();
 
 private slots:
     void onStadiumSelectionChanged();

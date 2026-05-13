@@ -5,6 +5,11 @@
 #include "../homepage/homepage.h"
 #include "../trip/tripwidget.h"
 #include "../stadiumgraph/stadiumgraph.h"
+#include "../graph/graphvisualizer.h"
+#include "../graph/graphactionbuffer.h"
+#include "../bfs/bfs.h"
+#include "../dfs/dfs.h"
+#include "../dijkstra/dijkstra.h"
 #include "../dfs/dfs.h"
 #include "../bfs/bfs.h"
 
@@ -69,6 +74,14 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
             this, &mainwindow::updateCartNotification);
     connect(m_tripPage, &TripWidget::routeReady,
             this, &mainwindow::onRouteReady);
+    connect(m_tripPage, &TripWidget::animateRoute,
+            this, [this](const GraphActionBuffer &buf) {
+        if (m_pathVisualizer) {
+            m_pathVisualizer->resetGraph();
+            m_pathVisualizer->playActions(buf, 80);
+            setActivePage(m_pathViewerPage, m_navPathViewer);
+        }
+    });
     m_stack->addWidget(m_tripPage);
 
     // Page 4 — Path Viewer (DFS / BFS / MST display)
@@ -80,6 +93,8 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
     m_adminPage->refresh();
     connect(m_adminPage, &AdminWidget::souvenirDataChanged,
             m_teamInfoPage, &TeamInfoWidget::reloadSouvenirs);
+    connect(m_adminPage, &AdminWidget::dataReloaded,
+            this, &mainwindow::onDataReloaded);
     m_stack->addWidget(m_adminPage);
 
     root->addWidget(m_stack, 1);
@@ -194,6 +209,15 @@ QWidget* mainwindow::buildPathViewerPage()
 
             totalLbl->setText(QString("Total MST mileage: %1 mi  |  %2 edges")
                                   .arg(total).arg(mst.size()));
+            if (m_pathVisualizer) {
+                GraphActionBuffer buf;
+                buf.setNodeStart(all.first());
+                for (const GraphEdge &e : mst) {
+                    buf.setEdgePath(e.from, e.to);
+                    buf.setNodePath(e.to);
+                }
+                m_pathVisualizer->playActions(buf, 60);
+            }
 
         } else if (algo == "DFS from Oracle Park") {
             DFSGraph g;
@@ -212,6 +236,17 @@ QWidget* mainwindow::buildPathViewerPage()
                         .arg(e.distance));
             }
             totalLbl->setText(QString("Total DFS traversal mileage: %1 mi").arg(r.totalMileage));
+            if (m_pathVisualizer) {
+                GraphActionBuffer buf;
+                if (!r.visitOrder.empty())
+                    buf.setNodeStart(QString::fromStdString(r.visitOrder[0].to));
+                for (int i = 1; i < (int)r.visitOrder.size(); i++) {
+                    const DFSEdge &e = r.visitOrder[i];
+                    buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setNodePath(QString::fromStdString(e.to));
+                }
+                m_pathVisualizer->playActions(buf, 80);
+            }
 
         } else if (algo == "BFS from Target Field") {
             BFSGraph g;
@@ -230,6 +265,17 @@ QWidget* mainwindow::buildPathViewerPage()
                         .arg(e.distance));
             }
             totalLbl->setText(QString("Total BFS traversal mileage: %1 mi").arg(r.totalMileage));
+            if (m_pathVisualizer) {
+                GraphActionBuffer buf;
+                if (!r.visitOrder.empty())
+                    buf.setNodeStart(QString::fromStdString(r.visitOrder[0].to));
+                for (int i = 1; i < (int)r.visitOrder.size(); i++) {
+                    const BFSEdge &e = r.visitOrder[i];
+                    buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setNodePath(QString::fromStdString(e.to));
+                }
+                m_pathVisualizer->playActions(buf, 80);
+            }
         }
     });
 
@@ -408,4 +454,12 @@ void mainwindow::onRouteReady()
         if (m_tripPage) m_tripPage->showRoutePage();
         setActivePage(m_tripPage, m_navViewRoute);
     }
+}
+
+void mainwindow::onDataReloaded()
+{
+    if (m_teamInfoPage)
+        m_teamInfoPage->loadTeamList(m_db->GetMlbInfoVector());
+    if (m_tripPage)
+        m_tripPage->refresh();
 }

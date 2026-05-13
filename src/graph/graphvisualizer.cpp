@@ -6,30 +6,31 @@ GraphVisualizer::GraphVisualizer(QPointF minSize, QWidget* parent) : QGraphicsVi
     setScene(scene);
 
     // Set colors
-    colors[NodeState::Default] = Qt::gray;
-    colors[NodeState::Open]    = Qt::yellow;
-    colors[NodeState::Closed]  = Qt::red;
-    colors[NodeState::Path]    = Qt::green;
-    colors[NodeState::Start]   = Qt::blue;
-    colors[NodeState::Goal]    = Qt::magenta;
+    nodeColors[NodeState::Default] = Qt::gray;
+    nodeColors[NodeState::Open]    = Qt::yellow;
+    nodeColors[NodeState::Closed]  = Qt::red;
+    nodeColors[NodeState::Path]    = Qt::green;
+    nodeColors[NodeState::Start]   = Qt::blue;
+    nodeColors[NodeState::Goal]    = Qt::magenta;
+
+    edgeColors[EdgeState::Default] = Qt::gray;
+    edgeColors[EdgeState::Open] = Qt::yellow;
+    edgeColors[EdgeState::Closed] = Qt::red;
+    edgeColors[EdgeState::Path] = Qt::green;
 
     setMinimumWidth(minSize.x());
     setMinimumHeight(minSize.y());
-
-
 }
 
 void GraphVisualizer::updateGraphData(const std::vector<mlbInfo>& teams, const std::vector<stadiumDistances> dist)
 {
-    nodes.clear();
-    edges.clear();
+    clearData();
 
     // Build nodes
     for (const auto& team : teams)
     {
         Node newNode;
         newNode.stadiumName = QString::fromStdString(team.stadiumName);
-        newNode.state = NodeState::Default;
 
         // Default pos updated before load
         newNode.pos = QPoint(0, 0);
@@ -59,7 +60,7 @@ void GraphVisualizer::loadGraph(int nodeSize, int edgeWidth)
     computeLayout();
 
     // Create the edge graphic objects
-    for (const auto &edge : edges)
+    for (Edge& edge : edges)
     {
         // Default positions
         QPointF start = nodes[0].pos;
@@ -80,23 +81,35 @@ void GraphVisualizer::loadGraph(int nodeSize, int edgeWidth)
         }
 
         // Create line
-        QPen pen(Qt::black);
+        QPen pen(edgeColors[EdgeState::Default]);
         pen.setWidth(edgeWidth);
         auto line = scene->addLine(QLineF(start, end), pen);
+        line->setOpacity(0.3);
 
-        edgeItems.push_back(line);
+        // Create edge visual wrapper
+        EdgeVisual* edgeVisual = new EdgeVisual;
+        edgeVisual->edge = &edge;
+        edgeVisual->state = EdgeState::Default;
+        edgeVisual->line = line;
+
+        // Store in map
+        QString key = getEdgeKey(edge.from, edge.to);
+        edgeItems[key] = edgeVisual;
     }
 
     // Create the node graphic objects
-    for (const auto &node : nodes)
+    for (Node& node : nodes)
     {
         // Offset needed as ellipses (nodes) are printed from top left
         float offset = nodeSize / 2.0;
 
-        auto item = scene->addEllipse(node.pos.x() - offset, node.pos.y() - offset, nodeSize, nodeSize,
-                                      QPen(Qt::black), QBrush(colors[node.state]));
+        auto item = scene->addEllipse(
+            node.pos.x() - offset, node.pos.y() - offset,
+            nodeSize, nodeSize,
+            QPen(Qt::black),
+            QBrush(nodeColors[NodeState::Default]));
 
-        nodeItems[node.stadiumName] = item;
+        // nodeItems[node.stadiumName] = item;
 
         // Create node label
         auto text = scene->addText(node.stadiumName);
@@ -104,13 +117,22 @@ void GraphVisualizer::loadGraph(int nodeSize, int edgeWidth)
 
         // Center text under node
         QRectF textRect = text->boundingRect();
-
         text->setPos(node.pos.x() - textRect.width() / 2.0,
-                     node.pos.y() + offset + 2);
+                     node.pos.y() + offset);
 
         QFont font;
-        font.setPointSize(8);
+        font.setPointSize(20);
         text->setFont(font);
+
+        // Create node visual wrapper struct
+        NodeVisual* nodeVisual = new NodeVisual;
+        nodeVisual->node = &node;
+        nodeVisual->state = NodeState::Default;
+        nodeVisual->ellipse = item;
+        nodeVisual->label = text;
+
+        // Store in node map
+        nodeItems[node.stadiumName] = nodeVisual;
     }
 
     // Set scene to fit nodes and edges
@@ -119,55 +141,53 @@ void GraphVisualizer::loadGraph(int nodeSize, int edgeWidth)
 }
 
 // Slots
-void GraphVisualizer::setNodeStart(const QString& stadiumName)
+void GraphVisualizer::playActions(const GraphActionBuffer& buffer, int delay)
 {
-    setNodeState(stadiumName, NodeState::Start);
-}
+    auto actions = buffer.getActionBuffer();
 
-void GraphVisualizer::setNodeEnd(const QString& stadiumName)
-{
-    setNodeState(stadiumName, NodeState::Goal);
-}
+    QTimer* timer = new QTimer(this);
 
-void GraphVisualizer::setNodeOpen(const QString& stadiumName)
-{
-    setNodeState(stadiumName, NodeState::Open);
-}
 
-void GraphVisualizer::setNodeClosed(const QString& stadiumName)
-{
-    setNodeState(stadiumName, NodeState::Closed);
-}
+    // Allocate counter on the heap not sure why but it doesnt work as int
+    int* actionIndex = new int(0);
 
-void GraphVisualizer::setPath(const QStringList& pathStadiumNames)
-{
-    for (const QString& stadium : pathStadiumNames)
+    // Connect timer to lambda
+    QObject::connect(timer, &QTimer::timeout, this, [this, timer, actions, actionIndex]()
     {
-        setNodeState(stadium, NodeState::Path);
-    }
-}
+        if (*actionIndex >= actions.size())
+        {
+            timer->stop();
+            timer->deleteLater();
+            delete actionIndex;
+            return;
+        }
 
-void GraphVisualizer::setPath(const std::vector<mlbInfo> pathMlbInfo)
-{
-    QStringList path;
-    path.clear();
+        doAction(actions[*actionIndex]);
+        *actionIndex += 1;
+    });
 
-    for (const mlbInfo& loc : pathMlbInfo)
-    {
-        path.push_back(QString::fromStdString(loc.stadiumName));
-    }
-
-    setPath(path);
-}
-
-void GraphVisualizer::setPath(const QString& stadiumName)
-{
-    setNodeState(stadiumName, NodeState::Path);
+    // Start timer
+    timer->start(delay);
 }
 
 void GraphVisualizer::rerollGraph()
 {
     loadGraph();
+}
+
+void GraphVisualizer::resetGraph()
+{
+    // Recolor nodes
+    for (auto& node : nodes)
+    {
+        setNodeState(node.stadiumName, NodeState::Default);
+    }
+
+    // Recolor edges
+    for (auto &edge : edges)
+    {
+        setEdgeState(edge.from, edge.to, EdgeState::Default);
+    }
 }
 
 void GraphVisualizer::resizeEvent(QResizeEvent* event)
@@ -187,10 +207,10 @@ and applies an attraction force to connected nodes
 Forces are calculated before node pos is updated and when applied are bounded damping force*/
 void GraphVisualizer::computeLayout()
 {
-    int iterations = 10;
-    float repulsion = 1000;
-    float attraction = 0.05;
-    float damping = 0.85;
+    int iterations = 20;
+    float repulsion = 1500;
+    float attraction = 0.04;
+    float damping = 0.75;
 
     float screenWidth = this->width();
     float screenHeight = this->height();
@@ -293,15 +313,103 @@ void GraphVisualizer::computeLayout()
     }
 }
 
+QString GraphVisualizer::getEdgeKey(const QString& from, const QString& to)
+{
+    if (from.isEmpty() || to.isEmpty())
+    {
+        qDebug() << "Either from or to is empty returning nothing";
+        return "";
+    }
+
+    QString key = from;
+    key += "<->";
+    key += to;
+
+    return key;
+}
+
+void GraphVisualizer::clearData()
+{
+    nodes.clear();
+    edges.clear();
+    nodeItems.clear();
+    edgeItems.clear();
+}
+
 void GraphVisualizer::setNodeState(const QString& stadiumName, NodeState state)
 {
-    // Early out if unrecognized stadium
     if (!nodeItems.contains(stadiumName))
     {
         return;
     }
 
-    auto item = nodeItems[stadiumName];
+    NodeVisual* nv = nodeItems[stadiumName];
 
-    item->setBrush(QBrush(colors[state]));
+    // update stored object
+    nv->state = state;
+
+    // update rendering
+    nv->ellipse->setBrush(QBrush(nodeColors[state]));
+}
+
+void GraphVisualizer::setEdgeState(const QString& from, const QString& to, EdgeState state)
+{
+    QString edgeKey = getEdgeKey(from, to);
+
+    if (!edgeItems.contains(edgeKey))
+    {
+        return;
+    }
+
+    EdgeVisual* ev = edgeItems[edgeKey];
+
+    ev->state = state;
+
+    QPen pen = edgeColors[state];
+    pen.setWidth(5);
+    ev->line->setPen(pen);
+
+    ev->line->setOpacity(1);
+}
+
+void GraphVisualizer::doAction(const Action& action)
+{
+    switch (action.type)
+    {
+    case ActionType::NodeStart:
+        setNodeState(action.node, NodeState::Start);
+        break;
+
+    case ActionType::NodeGoal:
+        setNodeState(action.node, NodeState::Goal);
+        break;
+
+    case ActionType::NodeOpen:
+        setNodeState(action.node, NodeState::Open);
+        break;
+
+    case ActionType::NodeClosed:
+        setNodeState(action.node, NodeState::Closed);
+        break;
+
+    case ActionType::NodePath:
+        setNodeState(action.node, NodeState::Path);
+        break;
+
+    case ActionType::EdgeOpen:
+        setEdgeState(action.from, action.to, EdgeState::Open);
+        break;
+
+    case ActionType::EdgeClosed:
+        setEdgeState(action.from, action.to, EdgeState::Closed);
+        break;
+
+    case ActionType::EdgePath:
+        setEdgeState(action.from, action.to, EdgeState::Path);
+        break;
+
+    case ActionType::ClearMap:
+        resetGraph();
+        break;
+    }
 }

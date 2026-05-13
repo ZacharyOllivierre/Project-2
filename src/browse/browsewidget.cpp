@@ -98,6 +98,13 @@ void BrowseWidget::initTable()
 
     ui->table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->table->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    ui->table->horizontalHeader()->setStretchLastSection(true);
+    ui->table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
 }
 
 // Populates table with sub set of teams / in specified sort type

@@ -162,17 +162,17 @@ QWidget* TripWidget::buildPlanPage()
 
     addSection("Custom");
     auto *btnAstar = addMode("Custom Trip — A*",       "astar",    "Shortest path, two stops",    true);
-                    addMode("Custom Trip — Dijkstra",  "dijkstra", "Single-source shortest path", false);
+    addMode("Custom Trip — Dijkstra",  "dijkstra", "Single-source shortest path", false);
 
     addSection("Custom Multi-Stop");
-                    addMode("Multi-stop — A* Ordered",  "astar_multi",    "Visit stops in your order", true);
-                    addMode("Multi-stop — Dijkstra",    "dijkstra_multi", "Most efficient order",      true);
+    addMode("Multi-stop — A* Ordered",  "astar_multi",    "Visit stops in your order", true);
+    addMode("Multi-stop — Dijkstra",    "dijkstra_multi", "Most efficient order",      true);
 
     addSection("Pre-Planned");
-                    addMode("All 30 from Marlins Park","marlins",  "Dijkstra greedy from Marlins", true);
-                    addMode("All 30 — Min Distance",   "mst",      "Minimum spanning tree",       true);
-                    addMode("DFS from Oracle Park",    "dfs",      "Depth-first traversal",       false);
-                    addMode("BFS from Target Field",   "bfs",      "Breadth-first traversal",     false);
+    addMode("All 30 from Marlins Park","marlins",  "Dijkstra greedy from Marlins", true);
+    addMode("All 30 — Min Distance",   "mst",      "Minimum spanning tree",       true);
+    addMode("DFS from Oracle Park",    "dfs",      "Depth-first traversal",       false);
+    addMode("BFS from Target Field",   "bfs",      "Breadth-first traversal",     false);
 
     btnAstar->setChecked(true);
     m_currentMode = "astar";
@@ -324,7 +324,7 @@ QWidget* TripWidget::buildRoutePage()
     m_lblTotalSpent = new QLabel("$0.00 spent");
     m_lblTotalSpent->setStyleSheet("color:#40c878; font-size:12px; font-weight:600; border:none;");
 
-    m_btnAnimate = makeBtn("Animate on Graph", "#1a3a60");
+    m_btnAnimate = makeBtn("Animate on Path Viewer", "#1a3a60");
     connect(m_btnAnimate, &QPushButton::clicked, this, &TripWidget::onAnimateRoute);
 
     hlay->addWidget(btnBack);
@@ -437,7 +437,7 @@ QList<TripStop> TripWidget::runAstar(const QString &start, const QString &end)
 
     if (result.totalCost < 0 || result.path.empty()) {
         QMessageBox::warning(this, "No Path",
-            QString("No path found from %1 to %2.").arg(start, end));
+                             QString("No path found from %1 to %2.").arg(start, end));
         return {};
     }
 
@@ -459,11 +459,11 @@ QList<TripStop> TripWidget::runAstar(const QString &start, const QString &end)
 
         for (const auto &info : m_db->GetMlbInfoVector())
             if (QString::fromStdString(info.stadiumName).trimmed() == ts.stadiumName)
-                { ts.teamName = QString::fromStdString(info.teamName); break; }
+            { ts.teamName = QString::fromStdString(info.teamName); break; }
 
         ts.distFromPrev = (i == 0) ? 0
-            : distMap.value(QString::fromStdString(result.path[i-1]).trimmed()
-                            + "|" + ts.stadiumName, 0);
+                                   : distMap.value(QString::fromStdString(result.path[i-1]).trimmed()
+                                                       + "|" + ts.stadiumName, 0);
 
         stops.append(ts);
     }
@@ -495,7 +495,7 @@ QList<TripStop> TripWidget::runMST(const QString &start)
         order.append(cur);
         for (const QString &child : tree.value(cur))
             if (!visited.contains(child))
-                { visited.insert(child); queue.append(child); }
+            { visited.insert(child); queue.append(child); }
     }
 
     QMap<QString, int> edgeDist;
@@ -509,7 +509,7 @@ QList<TripStop> TripWidget::runMST(const QString &start)
         ts.distFromPrev = (i == 0) ? 0 : edgeDist.value(order[i-1] + "|" + order[i], 0);
         for (const auto &info : m_db->GetMlbInfoVector())
             if (QString::fromStdString(info.stadiumName).trimmed() == ts.stadiumName)
-                { ts.teamName = QString::fromStdString(info.teamName); break; }
+            { ts.teamName = QString::fromStdString(info.teamName); break; }
         stops.append(ts);
     }
 
@@ -522,7 +522,7 @@ QList<TripStop> TripWidget::runDFS(const QString &start)
 {
     Q_UNUSED(start);
     QMessageBox::information(this, "Coming Soon",
-        "DFS traversal is under development. Replace this function body with your implementation.");
+                             "DFS traversal is under development. Replace this function body with your implementation.");
     return {};
 }
 
@@ -530,7 +530,7 @@ QList<TripStop> TripWidget::runBFS(const QString &start)
 {
     Q_UNUSED(start);
     QMessageBox::information(this, "Coming Soon",
-        "BFS traversal is under development. Replace this function body with your implementation.");
+                             "BFS traversal is under development. Replace this function body with your implementation.");
     return {};
 }
 
@@ -638,7 +638,7 @@ void TripWidget::onStopSelected(int row)
     if (row < 0 || row >= m_currentRoute.size()) return;
     const TripStop &stop = m_currentRoute[row];
     m_lblStopTitle->setText(QString("Souvenirs — %1")
-        .arg(stop.teamName.isEmpty() ? stop.stadiumName : stop.teamName));
+                                .arg(stop.teamName.isEmpty() ? stop.stadiumName : stop.teamName));
     loadSouvenirList(stop.stadiumName);
 }
 
@@ -667,8 +667,8 @@ void TripWidget::loadRoute(const QList<TripStop> &stops)
     for (int i = 0; i < stops.size(); i++) {
         const TripStop &s = stops[i];
         QString display = s.teamName.isEmpty()
-            ? s.stadiumName
-            : QString("%1  (%2)").arg(s.teamName, s.stadiumName);
+                              ? s.stadiumName
+                              : QString("%1  (%2)").arg(s.teamName, s.stadiumName);
         QString text = QString("%1.  %2").arg(i + 1).arg(display);
         if (s.distFromPrev > 0)
             text += QString("   +%1 mi").arg(s.distFromPrev);
@@ -677,12 +677,12 @@ void TripWidget::loadRoute(const QList<TripStop> &stops)
 
     m_lblTotalMiles->setText(QString("%1 miles total").arg(m_totalMiles));
     m_lblTotalSpent->setText(QString("$%1 spent")
-        .arg(m_mgr ? m_mgr->getGrandTotal() : 0.0, 0, 'f', 2));
+                                 .arg(m_mgr ? m_mgr->getGrandTotal() : 0.0, 0, 'f', 2));
 
     auto *title = findChild<QLabel*>("stopTitle");
     if (title)
         title->setText(QString("Route  %1 Stop%2")
-            .arg(stops.size()).arg(stops.size() == 1 ? "" : "s"));
+                           .arg(stops.size()).arg(stops.size() == 1 ? "" : "s"));
 
     if (!stops.isEmpty()) {
         m_stopList->setCurrentRow(0);
@@ -726,10 +726,10 @@ QPushButton* TripWidget::makeBtn(const QString &label, const QString &bg)
 {
     auto *b = new QPushButton(label);
     b->setStyleSheet(QString(
-        "QPushButton{ background:%1; color:#c8e0f4; border:none; border-radius:3px;"
-        "  padding:6px 14px; font-size:12px; }"
-        "QPushButton:hover{ color:#ffffff; }"
-        "QPushButton:disabled{ color:#3a5060; }").arg(bg));
+                         "QPushButton{ background:%1; color:#c8e0f4; border:none; border-radius:3px;"
+                         "  padding:6px 14px; font-size:12px; }"
+                         "QPushButton:hover{ color:#ffffff; }"
+                         "QPushButton:disabled{ color:#3a5060; }").arg(bg));
     b->setCursor(Qt::PointingHandCursor);
     return b;
 }
@@ -818,7 +818,7 @@ QList<TripStop> TripWidget::runMarlinsGreedy()
     first.teamName    = "Miami Marlins";
     for (const auto &info : m_db->GetMlbInfoVector())
         if (QString::fromStdString(info.stadiumName).trimmed() == "Marlins Park")
-            { first.teamName = QString::fromStdString(info.teamName); break; }
+        { first.teamName = QString::fromStdString(info.teamName); break; }
     stops.append(first);
 
     QString current = "Marlins Park";
@@ -844,7 +844,7 @@ QList<TripStop> TripWidget::runMarlinsGreedy()
         for (const auto &info : m_db->GetMlbInfoVector()) {
             QString sn = QString::fromStdString(info.stadiumName).trimmed();
             if (sn == ts.stadiumName || (sn == "Daikin Park" && nearest == "Minute Maid Park"))
-                { ts.teamName = QString::fromStdString(info.teamName); break; }
+            { ts.teamName = QString::fromStdString(info.teamName); break; }
         }
         stops.append(ts);
         current = nearest;
@@ -893,7 +893,7 @@ QList<TripStop> TripWidget::runMultiStop(const QStringList &waypoints, bool useA
                 m_db->GetStadiumDistancesVector());
             if (r.totalCost < 0 || r.path.empty()) {
                 QMessageBox::warning(this, "No Path",
-                    QString("No path from %1 to %2").arg(from, to));
+                                     QString("No path from %1 to %2").arg(from, to));
                 return {};
             }
             for (int j = 0; j < (int)r.path.size(); j++) {
@@ -901,10 +901,10 @@ QList<TripStop> TripWidget::runMultiStop(const QStringList &waypoints, bool useA
                 ts.stadiumName = QString::fromStdString(r.path[j]).trimmed();
                 for (const auto &info : m_db->GetMlbInfoVector())
                     if (QString::fromStdString(info.stadiumName).trimmed() == ts.stadiumName)
-                        { ts.teamName = QString::fromStdString(info.teamName); break; }
+                    { ts.teamName = QString::fromStdString(info.teamName); break; }
                 ts.distFromPrev = (j == 0) ? 0
-                    : distMap.value(QString::fromStdString(r.path[j-1]).trimmed()
-                                    + "|" + ts.stadiumName, 0);
+                                           : distMap.value(QString::fromStdString(r.path[j-1]).trimmed()
+                                                               + "|" + ts.stadiumName, 0);
                 segment.append(ts);
             }
         } else {
@@ -915,10 +915,10 @@ QList<TripStop> TripWidget::runMultiStop(const QStringList &waypoints, bool useA
             PathInfo *target = nullptr;
             for (auto &pi : res)
                 if (pi.destination.trimmed() == to)
-                    { target = &pi; break; }
+                { target = &pi; break; }
             if (!target || target->path.isEmpty()) {
                 QMessageBox::warning(this, "No Path",
-                    QString("No path from %1 to %2").arg(from, to));
+                                     QString("No path from %1 to %2").arg(from, to));
                 return {};
             }
             for (int j = 0; j < target->path.size(); j++) {
@@ -926,9 +926,9 @@ QList<TripStop> TripWidget::runMultiStop(const QStringList &waypoints, bool useA
                 ts.stadiumName = target->path[j].trimmed();
                 for (const auto &info : m_db->GetMlbInfoVector())
                     if (QString::fromStdString(info.stadiumName).trimmed() == ts.stadiumName)
-                        { ts.teamName = QString::fromStdString(info.teamName); break; }
+                    { ts.teamName = QString::fromStdString(info.teamName); break; }
                 ts.distFromPrev = (j == 0) ? 0
-                    : distMap.value(target->path[j-1].trimmed() + "|" + ts.stadiumName, 0);
+                                           : distMap.value(target->path[j-1].trimmed() + "|" + ts.stadiumName, 0);
                 segment.append(ts);
             }
         }
@@ -970,7 +970,7 @@ QList<TripStop> TripWidget::runDijkstraMulti(const QStringList &waypoints)
     startStop.stadiumName = start;
     for (const auto &info : m_db->GetMlbInfoVector())
         if (QString::fromStdString(info.stadiumName).trimmed() == start)
-            { startStop.teamName = QString::fromStdString(info.teamName); break; }
+        { startStop.teamName = QString::fromStdString(info.teamName); break; }
     fullRoute.append(startStop);
 
     // Greedily pick nearest remaining stop using Dijkstra distances
@@ -995,7 +995,7 @@ QList<TripStop> TripWidget::runDijkstraMulti(const QStringList &waypoints)
 
         if (bestStop.isEmpty() || !bestInfo) {
             QMessageBox::warning(this, "No Path",
-                QString("Could not reach remaining stops from %1.").arg(current));
+                                 QString("Could not reach remaining stops from %1.").arg(current));
             return {};
         }
 
@@ -1005,7 +1005,7 @@ QList<TripStop> TripWidget::runDijkstraMulti(const QStringList &waypoints)
             ts.stadiumName = bestInfo->path[j].trimmed();
             for (const auto &info : m_db->GetMlbInfoVector())
                 if (QString::fromStdString(info.stadiumName).trimmed() == ts.stadiumName)
-                    { ts.teamName = QString::fromStdString(info.teamName); break; }
+                { ts.teamName = QString::fromStdString(info.teamName); break; }
 
             // Per-leg distance from Dijkstra path
             if (j == 1) {
@@ -1103,11 +1103,15 @@ void TripWidget::onAnimateRoute()
     if (m_currentRoute.isEmpty()) return;
     GraphActionBuffer buf;
     buf.setNodeStart(m_currentRoute.first().stadiumName);
+    buf.setNodeGoal(m_currentRoute.last().stadiumName);
+
     for (int i = 1; i < m_currentRoute.size(); i++) {
         buf.setEdgePath(m_currentRoute[i-1].stadiumName, m_currentRoute[i].stadiumName);
+        buf.setEdgePath(m_currentRoute[i].stadiumName, m_currentRoute[i-1].stadiumName);
+
         buf.setNodePath(m_currentRoute[i].stadiumName);
     }
-    buf.setNodeGoal(m_currentRoute.last().stadiumName);
+
     emit animateRoute(buf);
 }
 

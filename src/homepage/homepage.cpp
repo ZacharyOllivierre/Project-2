@@ -87,7 +87,7 @@ bool homepage::eventFilter(QObject *watched, QEvent *event)
 
 void homepage::setDatabaseCounts(int teamCount, int stadiumCount, int totalCapacity)
 {
-    ui->teamCounterText->setPlainText(QString::number(teamCount));
-    ui->openStadiumText->setPlainText(QString::number(stadiumCount));
+    // ui->teamCounterText->setPlainText(QString::number(teamCount));
+    // ui->openStadiumText->setPlainText(QString::number(stadiumCount));
     Q_UNUSED(totalCapacity);  // capacity displayed statically as 1,286,462
 }

@@ -53,6 +53,7 @@ private:
     QPushButton    *m_navAdmin       = nullptr;
 
     GraphVisualizer *m_pathVisualizer = nullptr;
+    bool             m_pathVisualizerLoaded = false;
 
     QWidget* buildSidebar();
     QWidget* buildPathViewerPage();

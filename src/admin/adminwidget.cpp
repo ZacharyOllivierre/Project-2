@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QSet>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -652,6 +653,7 @@ QWidget* AdminWidget::buildDatabaseTab()
     auto *buttonRow = new QHBoxLayout;
 
     auto *btnImport = makeBtn("Import New Stadium Database", "#1e4a7a");
+    auto *btnImportDistances = makeBtn("Import New Distances Database", "#1e4a7a");
     auto *btnReset = makeBtn("Reset Active Database", "#5c1a1a");
 
     connect(btnImport, &QPushButton::clicked, this, [this]()
@@ -706,6 +708,103 @@ QWidget* AdminWidget::buildDatabaseTab()
                     );
             });
 
+    connect(btnImportDistances, &QPushButton::clicked, this, [this]()
+            {
+                QString filePath;
+                QString startPath;
+
+                startPath = findDatabaseFile("new_team_distances.db");
+
+                filePath = QFileDialog::getOpenFileName(
+                    this,
+                    "Import New Stadium Distances Database",
+                    startPath.isEmpty() ? QString() : QFileInfo(startPath).absolutePath(),
+                    "SQLite Database (*.db);;All Files (*)"
+                    );
+
+                if (filePath.isEmpty())
+                {
+                    return;
+                }
+
+                if (!m_db->AppendStadiumDistances(filePath))
+                {
+                    QMessageBox::critical(this,
+                                          "Import Failed",
+                                          "The selected distances database could not be appended.");
+                    return;
+                }
+
+                // Any stadium name that appears in the new distances but has no
+                // matching mlb_info row will be invisible to the trip planner
+                // dropdowns (those iterate mlb_info, not stadium_distances).
+                // Auto-create a placeholder mlb_info row for each unknown name
+                // so the new stadium shows up everywhere, not just in the graph.
+                QSet<QString> existingStadiums;
+                for (const auto &info : m_db->GetMlbInfoVector())
+                {
+                    existingStadiums.insert(
+                        QString::fromStdString(info.stadiumName).trimmed());
+                }
+
+                QSet<QString> newStadiums;
+                for (const auto &d : m_db->GetStadiumDistancesVector())
+                {
+                    QString o = QString::fromStdString(d.originatedStadium).trimmed();
+                    QString t = QString::fromStdString(d.destinationStadium).trimmed();
+                    if (!o.isEmpty() && !existingStadiums.contains(o))
+                    {
+                        newStadiums.insert(o);
+                    }
+                    if (!t.isEmpty() && !existingStadiums.contains(t))
+                    {
+                        newStadiums.insert(t);
+                    }
+                }
+
+                int placeholdersAdded = 0;
+                for (const QString &name : newStadiums)
+                {
+                    mlbInfo info;
+                    info.teamName              = "Unknown Team";
+                    info.stadiumName           = name.toStdString();
+                    info.seatingCapacity       = 0;
+                    info.location              = "";
+                    info.playingSurface        = "Unknown";
+                    info.league                = "Unknown";
+                    info.dateOpened            = 0;
+                    info.distanceToCenterField = "";
+                    info.ballparkTypology      = "Unknown";
+                    info.roofType              = "Unknown";
+
+                    if (insertStadiumInDB(info))
+                    {
+                        ++placeholdersAdded;
+                    }
+                }
+
+                if (placeholdersAdded > 0)
+                {
+                    m_db->CloseDB();
+                    m_db->OpenDB();
+                }
+
+                refresh();
+                emit dataReloaded();
+
+                QString msg = "New stadium distances were appended.";
+                if (placeholdersAdded > 0)
+                {
+                    msg += QString("\n\nAdded %1 placeholder mlb_info row(s) "
+                                   "for previously unknown stadium(s). "
+                                   "Edit them in the Stadiums tab to fill in "
+                                   "team name, capacity, etc.")
+                               .arg(placeholdersAdded);
+                }
+
+                QMessageBox::information(this, "Import Complete", msg);
+            });
+
     connect(btnReset, &QPushButton::clicked, this, [this]()
             {
                 QMessageBox::StandardButton reply;
@@ -754,6 +853,7 @@ QWidget* AdminWidget::buildDatabaseTab()
             });
 
     buttonRow->addWidget(btnImport);
+    buttonRow->addWidget(btnImportDistances);
     buttonRow->addWidget(btnReset);
     buttonRow->addStretch();
 

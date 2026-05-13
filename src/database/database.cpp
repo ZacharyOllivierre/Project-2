@@ -131,6 +131,93 @@ void Database::OpenDB()
     cout << "[INFO] Loaded teams: " << mlbInfoVector.size() << endl;
 }
 
+bool Database::AppendStadiumDistances(const QString &sourceFileName)
+{
+    QString sourcePath;
+
+    if (QFileInfo(sourceFileName).isAbsolute() && QFileInfo::exists(sourceFileName))
+    {
+        sourcePath = sourceFileName;
+    }
+    else
+    {
+        QStringList paths;
+        paths << "databases/" + sourceFileName
+              << "../databases/" + sourceFileName
+              << "../../databases/" + sourceFileName
+              << "../../../databases/" + sourceFileName;
+
+        for (const QString &p : paths)
+        {
+            if (QFileInfo::exists(p))
+            {
+                sourcePath = QFileInfo(p).absoluteFilePath();
+                break;
+            }
+        }
+    }
+
+    if (sourcePath.isEmpty())
+    {
+        cout << "[ERROR] Could not find " << sourceFileName.toStdString() << endl;
+        return false;
+    }
+
+    int count = 0;
+
+    {
+        QSqlDatabase sourceDb = QSqlDatabase::addDatabase("QSQLITE", "Append Source");
+        sourceDb.setDatabaseName(sourcePath);
+
+        if (!sourceDb.open())
+        {
+            cout << "[ERROR] " << sourceFileName.toStdString() << " FAILED TO OPEN\n";
+            QSqlDatabase::removeDatabase("Append Source");
+            return false;
+        }
+
+        QSqlQuery read(sourceDb);
+        read.exec("SELECT * FROM new_team_distances");
+
+        QSqlQuery insert(stadium_distances_db);
+        insert.prepare("INSERT INTO stadium_distances VALUES (?, ?, ?)");
+
+        while (read.next())
+        {
+            insert.bindValue(0, read.value(0).toString());
+            insert.bindValue(1, read.value(1).toString());
+            insert.bindValue(2, read.value(2).toInt());
+            insert.exec();
+            count++;
+        }
+
+        sourceDb.close();
+    }
+
+    QSqlDatabase::removeDatabase("Append Source");
+
+    // refresh vector
+    stadiumDistancesVector.clear();
+
+    auto fillDistances = [](QSqlQuery &q) -> stadiumDistances
+    {
+        stadiumDistances info;
+        info.originatedStadium = q.value(0).toString().toStdString();
+        info.destinationStadium = q.value(1).toString().toStdString();
+        info.distance = q.value(2).toInt();
+        return info;
+    };
+
+    InitVector(stadium_distances_db,
+               "stadium_distances",
+               stadiumDistancesVector,
+               function<stadiumDistances(QSqlQuery &)>(fillDistances));
+
+    cout << "[SUCCESS] Appended " << count << " rows\n";
+    return true;
+}
+
+
 void Database::CloseDB()
 {
     if (mlb_info_db.isOpen())

@@ -125,6 +125,12 @@ QWidget* mainwindow::buildPathViewerPage()
     desc->setWordWrap(true);
     lay->addWidget(desc);
 
+    // Graph visualizer
+    m_pathVisualizer = new GraphVisualizer(QPointF(400, 300));
+    m_pathVisualizer->setStyleSheet(
+        "background:#0a1628; border:1px solid #1a2d45; border-radius:4px;");
+    lay->addWidget(m_pathVisualizer, 2);
+
     // Controls card
     auto *card = new QWidget;
     card->setStyleSheet("background:#111f33; border:1px solid #1a2d45; border-radius:4px;");
@@ -156,10 +162,22 @@ QWidget* mainwindow::buildPathViewerPage()
         "QPushButton:hover{ background:#255a90; color:#ffffff; }");
     runBtn->setCursor(Qt::PointingHandCursor);
 
+    auto *relayoutBtn = new QPushButton("Re-layout");
+    relayoutBtn->setStyleSheet(
+        "QPushButton{ background:#1a2d45; color:#b8d4ec; border:none; border-radius:3px;"
+        "  padding:6px 14px; font-size:12px; }"
+        "QPushButton:hover{ background:#243f5e; color:#ffffff; }");
+    relayoutBtn->setCursor(Qt::PointingHandCursor);
+    connect(relayoutBtn, &QPushButton::clicked, this, [this]() {
+        if (m_pathVisualizer)
+            m_pathVisualizer->rerollGraph();
+    });
+
     ctrlRow->addWidget(mkLbl("Algorithm:"));
     ctrlRow->addWidget(algoCmb, 1);
     ctrlRow->addSpacing(16);
     ctrlRow->addWidget(runBtn);
+    ctrlRow->addWidget(relayoutBtn);
     ctrlRow->addStretch();
     cardLay->addLayout(ctrlRow);
 
@@ -381,6 +399,15 @@ QWidget* mainwindow::buildSidebar()
     });
     connect(m_navPathViewer, &QPushButton::clicked, this, [this]{
         setActivePage(m_pathViewerPage, m_navPathViewer);
+        if (m_pathVisualizer && m_db && !m_pathVisualizerLoaded) {
+            QTimer::singleShot(0, this, [this]() {
+                m_pathVisualizer->updateGraphData(
+                    m_db->GetMlbInfoVector(),
+                    m_db->GetStadiumDistancesVector());
+                m_pathVisualizer->loadGraph();
+                m_pathVisualizerLoaded = true;
+            });
+        }
     });
     connect(m_navAdmin, &QPushButton::clicked, this, [this] {
         bool ok = false;
@@ -462,4 +489,11 @@ void mainwindow::onDataReloaded()
         m_teamInfoPage->loadTeamList(m_db->GetMlbInfoVector());
     if (m_tripPage)
         m_tripPage->refresh();
+    if (m_pathVisualizer && m_db) {
+        m_pathVisualizer->updateGraphData(
+            m_db->GetMlbInfoVector(),
+            m_db->GetStadiumDistancesVector());
+        m_pathVisualizer->loadGraph();
+        m_pathVisualizerLoaded = true;
+    }
 }

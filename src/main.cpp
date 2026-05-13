@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
     Database db;
     db.OpenDB();
 
+   
     auto byCap = [](const mlbInfo &a, const mlbInfo &b) -> bool {
         return a.seatingCapacity < b.seatingCapacity;
     };

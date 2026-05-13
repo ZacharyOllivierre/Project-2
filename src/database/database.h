@@ -66,6 +66,7 @@ private:
 public:
     Database();
     void OpenDB();
+    bool AppendStadiumDistances(const QString& sourceFileName);
     void CloseDB();
     ~Database();
 

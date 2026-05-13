@@ -652,6 +652,7 @@ QWidget* AdminWidget::buildDatabaseTab()
     auto *buttonRow = new QHBoxLayout;
 
     auto *btnImport = makeBtn("Import New Stadium Database", "#1e4a7a");
+    auto *btnImportDistances = makeBtn("Import Stadium Distances Database", "#5c3d0a");
     auto *btnReset = makeBtn("Reset Active Database", "#5c1a1a");
 
     connect(btnImport, &QPushButton::clicked, this, [this]()
@@ -706,6 +707,28 @@ QWidget* AdminWidget::buildDatabaseTab()
                     );
             });
 
+    connect(btnImportDistances, &QPushButton::clicked, this, [this]()
+            {
+                bool success;
+
+                success = m_db->AppendStadiumDistances("new_team_distances.db");
+
+                if (!success)
+                {
+                    QMessageBox::critical(this,
+                                          "Distance Import Failed",
+                                          "The stadium distances database could not be imported.\n\n"
+                                          "Make sure databases/new_team_distances.db exists and contains "
+                                          "a table named new_team_distances with three columns in this order:\n\n"
+                                          "originated, destination, distance.");
+                    return;
+                }
+
+                QMessageBox::information(this,
+                                         "Distance Import Complete",
+                                         "The stadium distances database was imported successfully.");
+            });
+
     connect(btnReset, &QPushButton::clicked, this, [this]()
             {
                 QMessageBox::StandardButton reply;
@@ -754,6 +777,7 @@ QWidget* AdminWidget::buildDatabaseTab()
             });
 
     buttonRow->addWidget(btnImport);
+    buttonRow->addWidget(btnImportDistances);
     buttonRow->addWidget(btnReset);
     buttonRow->addStretch();
 

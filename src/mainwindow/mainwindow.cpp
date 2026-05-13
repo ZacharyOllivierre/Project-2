@@ -76,12 +76,12 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
             this, &mainwindow::onRouteReady);
     connect(m_tripPage, &TripWidget::animateRoute,
             this, [this](const GraphActionBuffer &buf) {
-        if (m_pathVisualizer) {
-            m_pathVisualizer->resetGraph();
-            m_pathVisualizer->playActions(buf, 80);
-            setActivePage(m_pathViewerPage, m_navPathViewer);
-        }
-    });
+                if (m_pathVisualizer) {
+                    m_pathVisualizer->resetGraph();
+                    m_pathVisualizer->playActions(buf, 80);
+                    setActivePage(m_pathViewerPage, m_navPathViewer);
+                }
+            });
     m_stack->addWidget(m_tripPage);
 
     // Page 4 — Path Viewer (DFS / BFS / MST display)
@@ -110,27 +110,36 @@ QWidget* mainwindow::buildPathViewerPage()
 {
     auto *page = new QWidget;
     page->setStyleSheet("background:#0d1c2e;");
-    auto *lay = new QVBoxLayout(page);
-    lay->setContentsMargins(24, 20, 24, 20);
-    lay->setSpacing(12);
+    auto *outerLay = new QHBoxLayout(page);
+    outerLay->setContentsMargins(0, 0, 0, 0);
+    outerLay->setSpacing(0);
+
+    // Left: graph visualizer
+    m_pathVisualizer = new GraphVisualizer(QPointF(600, 500));
+    m_pathVisualizer->updateGraphData(
+        m_db->GetMlbInfoVector(),
+        m_db->GetStadiumDistancesVector());
+    m_pathVisualizer->loadGraph();
+    outerLay->addWidget(m_pathVisualizer, 2);
+
+    // Right: controls + result list
+    auto *rightPanel = new QWidget;
+    rightPanel->setStyleSheet("background:#0d1c2e;");
+    auto *lay = new QVBoxLayout(rightPanel);
+    lay->setContentsMargins(12, 16, 16, 16);
+    lay->setSpacing(10);
+    outerLay->addWidget(rightPanel, 1);
 
     auto *header = new QLabel("Path Viewer");
-    header->setStyleSheet("color:#ffffff; font-size:18px; font-weight:700;");
+    header->setStyleSheet("color:#ffffff; font-size:15px; font-weight:700; border:none;");
     lay->addWidget(header);
-
-    auto *desc = new QLabel(
-        "Visualize graph traversal algorithms on the stadium network.\n"
-        "Select an algorithm and starting point to see the traversal order.");
-    desc->setStyleSheet("color:#4a6d8c; font-size:12px;");
-    desc->setWordWrap(true);
-    lay->addWidget(desc);
 
     // Controls card
     auto *card = new QWidget;
     card->setStyleSheet("background:#111f33; border:1px solid #1a2d45; border-radius:4px;");
     auto *cardLay = new QVBoxLayout(card);
-    cardLay->setContentsMargins(16, 14, 16, 14);
-    cardLay->setSpacing(10);
+    cardLay->setContentsMargins(12, 10, 12, 10);
+    cardLay->setSpacing(8);
 
     auto *ctrlRow = new QHBoxLayout;
 
@@ -176,10 +185,12 @@ QWidget* mainwindow::buildPathViewerPage()
     cardLay->addWidget(totalLbl);
 
     lay->addWidget(card, 1);
+    lay->addStretch(0);
 
     // Wire run button — MST live, DFS/BFS pending
     connect(runBtn, &QPushButton::clicked, this, [this, resultList, totalLbl, algoCmb]() {
         resultList->clear();
+        if (m_pathVisualizer) m_pathVisualizer->resetGraph();
         QString algo = algoCmb->currentText();
 
         if (algo == "MST (Prim\'s)") {
@@ -212,8 +223,10 @@ QWidget* mainwindow::buildPathViewerPage()
             if (m_pathVisualizer) {
                 GraphActionBuffer buf;
                 buf.setNodeStart(all.first());
+
                 for (const GraphEdge &e : mst) {
                     buf.setEdgePath(e.from, e.to);
+                    buf.setEdgePath(e.to, e.from);
                     buf.setNodePath(e.to);
                 }
                 m_pathVisualizer->playActions(buf, 60);
@@ -230,10 +243,10 @@ QWidget* mainwindow::buildPathViewerPage()
                     resultList->addItem(QString("1.  %1  (start)").arg(QString::fromStdString(e.to)));
                 else
                     resultList->addItem(QString("%1.  %2  →  %3  (%4 mi)")
-                        .arg(i + 1)
-                        .arg(QString::fromStdString(e.from))
-                        .arg(QString::fromStdString(e.to))
-                        .arg(e.distance));
+                                            .arg(i + 1)
+                                            .arg(QString::fromStdString(e.from))
+                                            .arg(QString::fromStdString(e.to))
+                                            .arg(e.distance));
             }
             totalLbl->setText(QString("Total DFS traversal mileage: %1 mi").arg(r.totalMileage));
             if (m_pathVisualizer) {
@@ -243,6 +256,8 @@ QWidget* mainwindow::buildPathViewerPage()
                 for (int i = 1; i < (int)r.visitOrder.size(); i++) {
                     const DFSEdge &e = r.visitOrder[i];
                     buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setEdgePath(QString::fromStdString(e.to), QString::fromStdString(e.from));
+
                     buf.setNodePath(QString::fromStdString(e.to));
                 }
                 m_pathVisualizer->playActions(buf, 80);
@@ -259,10 +274,10 @@ QWidget* mainwindow::buildPathViewerPage()
                     resultList->addItem(QString("1.  %1  (start)").arg(QString::fromStdString(e.to)));
                 else
                     resultList->addItem(QString("%1.  %2  →  %3  (%4 mi)")
-                        .arg(i + 1)
-                        .arg(QString::fromStdString(e.from))
-                        .arg(QString::fromStdString(e.to))
-                        .arg(e.distance));
+                                            .arg(i + 1)
+                                            .arg(QString::fromStdString(e.from))
+                                            .arg(QString::fromStdString(e.to))
+                                            .arg(e.distance));
             }
             totalLbl->setText(QString("Total BFS traversal mileage: %1 mi").arg(r.totalMileage));
             if (m_pathVisualizer) {
@@ -272,6 +287,8 @@ QWidget* mainwindow::buildPathViewerPage()
                 for (int i = 1; i < (int)r.visitOrder.size(); i++) {
                     const BFSEdge &e = r.visitOrder[i];
                     buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setEdgePath(QString::fromStdString(e.to), QString::fromStdString(e.from));
+
                     buf.setNodePath(QString::fromStdString(e.to));
                 }
                 m_pathVisualizer->playActions(buf, 80);
@@ -395,13 +412,13 @@ QWidget* mainwindow::buildSidebar()
     connect(m_navAdmin, &QPushButton::clicked, this, [this] {
         bool ok = false;
         QString password = QInputDialog::getText(this,
-            "Admin Login", "Enter administrator password:",
-            QLineEdit::Password, "", &ok);
+                                                 "Admin Login", "Enter administrator password:",
+                                                 QLineEdit::Password, "", &ok);
         if (!ok) return;
 
         QString hash = QString(QCryptographicHash::hash(
-            QString("cs1d_mlb_admin_salt_%1").arg(password).toUtf8(),
-            QCryptographicHash::Sha256).toHex());
+                                   QString("cs1d_mlb_admin_salt_%1").arg(password).toUtf8(),
+                                   QCryptographicHash::Sha256).toHex());
 
         if (hash != "757ccc78485530665f59a01a4d4bcf2818d3ef57d68290a0d58021d3f89463ce") {
             QMessageBox::warning(this, "Access Denied", "Incorrect administrator password.");
@@ -491,5 +508,5 @@ void mainwindow::resetShoppingCart()
         m_purchaseWindow->refreshScreen();
 
     QMessageBox::information(this, "Shopping Cart Reset",
-        "The shopping cart has been cleared.");
+                             "The shopping cart has been cleared.");
 }

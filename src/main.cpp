@@ -1,6 +1,6 @@
+#include "browse/browsewidget.h"
 #include "database/database.h"
 #include "mainwindow/mainwindow.h"
-#include "browse/browsewidget.h"
 
 #include <QApplication>
 #include <functional>
@@ -66,8 +66,6 @@ int main(int argc, char *argv[])
     mainwindow w;
     w.loadTeams(db.GetMlbInfoVector(), &db);
     w.show();
-
-
 
     return app.exec();
 }

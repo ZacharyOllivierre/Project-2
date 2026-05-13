@@ -58,25 +58,6 @@
         </layout>
        </widget>
       </item>
-      <item>
-       <widget class="QGroupBox" name="openStadiumBox">
-        <property name="title">
-         <string>Number of Open Stadiums</string>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_6">
-         <item>
-          <widget class="QTextEdit" name="openStadiumText">
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
-           <property name="overwriteMode">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>

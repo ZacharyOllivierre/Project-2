@@ -324,7 +324,7 @@ QWidget* TripWidget::buildRoutePage()
     m_lblTotalSpent = new QLabel("$0.00 spent");
     m_lblTotalSpent->setStyleSheet("color:#40c878; font-size:12px; font-weight:600; border:none;");
 
-    m_btnAnimate = makeBtn("Animate on Graph", "#1a3a60");
+    m_btnAnimate = makeBtn("Animate on Path Viewer", "#1a3a60");
     connect(m_btnAnimate, &QPushButton::clicked, this, &TripWidget::onAnimateRoute);
 
     hlay->addWidget(btnBack);

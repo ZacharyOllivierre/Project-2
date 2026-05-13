@@ -55,6 +55,29 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
     m_homePage->setStyleSheet("background:#0d1c2e;");
     m_stack->addWidget(m_homePage);
 
+    // Wire homepage nav box clicks
+    auto *hp = qobject_cast<homepage*>(m_homePage);
+    connect(hp, &homepage::toBrowseWidget,    this, [this]{ setActivePage(m_browsePage,   m_navBrowse); });
+    connect(hp, &homepage::toTeamInfoWidget,  this, [this]{ setActivePage(m_teamInfoPage, m_navTeamInfo); });
+    connect(hp, &homepage::toTripPlannerWidget, this, [this]{
+        if (m_tripPage) m_tripPage->showPlanPage();
+        setActivePage(m_tripPage, m_navPlanTrip);
+    });
+    connect(hp, &homepage::toPathViewerWidget, this, [this]{ setActivePage(m_pathViewerPage, m_navPathViewer); });
+
+    // Wire homepage nav box clicks
+    connect(qobject_cast<homepage*>(m_homePage), &homepage::toBrowseWidget,
+            this, [this]{ setActivePage(m_browsePage, m_navBrowse); });
+    connect(qobject_cast<homepage*>(m_homePage), &homepage::toTeamInfoWidget,
+            this, [this]{ setActivePage(m_teamInfoPage, m_navTeamInfo); });
+    connect(qobject_cast<homepage*>(m_homePage), &homepage::toTripPlannerWidget,
+            this, [this]{
+                if (m_tripPage) m_tripPage->showPlanPage();
+                setActivePage(m_tripPage, m_navPlanTrip);
+            });
+    connect(qobject_cast<homepage*>(m_homePage), &homepage::toPathViewerWidget,
+            this, [this]{ setActivePage(m_pathViewerPage, m_navPathViewer); });
+
     // Page 1 — Team Info (now has its own team list sidebar)
     m_teamInfoPage = new TeamInfoWidget(&m_souvenirManager, m_db);
     m_teamInfoPage->loadTeamList(teams);
@@ -99,6 +122,23 @@ void mainwindow::loadTeams(const std::vector<mlbInfo> &teams, Database *db)
 
     root->addWidget(m_stack, 1);
 
+    // Populate homepage counters from DB
+    int teamCount = (int)teams.size();
+    int openCount = 0;
+    for (const auto &t : teams) {
+        QString roof = QString::fromStdString(t.roofType).trimmed();
+        if (roof.compare("Open", Qt::CaseInsensitive) == 0) openCount++;
+    }
+    qobject_cast<homepage*>(m_homePage)->setDatabaseCounts(teamCount, openCount);
+
+    // Populate homepage counters
+    for (const auto &t : teams) {
+        QString roof = QString::fromStdString(t.roofType).trimmed();
+        if (roof.compare("Open", Qt::CaseInsensitive) == 0) openCount++;
+    }
+    if (auto *hp2 = qobject_cast<homepage*>(m_homePage))
+        hp2->setDatabaseCounts((int)teams.size(), openCount);
+
     setActivePage(m_homePage, m_navHome);
 }
 
@@ -110,27 +150,36 @@ QWidget* mainwindow::buildPathViewerPage()
 {
     auto *page = new QWidget;
     page->setStyleSheet("background:#0d1c2e;");
-    auto *lay = new QVBoxLayout(page);
-    lay->setContentsMargins(24, 20, 24, 20);
-    lay->setSpacing(12);
+    auto *outerLay = new QHBoxLayout(page);
+    outerLay->setContentsMargins(0, 0, 0, 0);
+    outerLay->setSpacing(0);
+
+    // Left: graph visualizer
+    m_pathVisualizer = new GraphVisualizer(QPointF(600, 500));
+    m_pathVisualizer->updateGraphData(
+        m_db->GetMlbInfoVector(),
+        m_db->GetStadiumDistancesVector());
+    m_pathVisualizer->loadGraph();
+    outerLay->addWidget(m_pathVisualizer, 2);
+
+    // Right: controls
+    auto *rightPanel = new QWidget;
+    rightPanel->setStyleSheet("background:#0d1c2e;");
+    auto *lay = new QVBoxLayout(rightPanel);
+    lay->setContentsMargins(12, 16, 16, 16);
+    lay->setSpacing(10);
+    outerLay->addWidget(rightPanel, 1);
 
     auto *header = new QLabel("Path Viewer");
-    header->setStyleSheet("color:#ffffff; font-size:18px; font-weight:700;");
+    header->setStyleSheet("color:#ffffff; font-size:15px; font-weight:700; border:none;");
     lay->addWidget(header);
-
-    auto *desc = new QLabel(
-        "Visualize graph traversal algorithms on the stadium network.\n"
-        "Select an algorithm and starting point to see the traversal order.");
-    desc->setStyleSheet("color:#4a6d8c; font-size:12px;");
-    desc->setWordWrap(true);
-    lay->addWidget(desc);
 
     // Controls card
     auto *card = new QWidget;
     card->setStyleSheet("background:#111f33; border:1px solid #1a2d45; border-radius:4px;");
     auto *cardLay = new QVBoxLayout(card);
-    cardLay->setContentsMargins(16, 14, 16, 14);
-    cardLay->setSpacing(10);
+    cardLay->setContentsMargins(12, 10, 12, 10);
+    cardLay->setSpacing(8);
 
     auto *ctrlRow = new QHBoxLayout;
 
@@ -180,6 +229,7 @@ QWidget* mainwindow::buildPathViewerPage()
     // Wire run button — MST live, DFS/BFS pending
     connect(runBtn, &QPushButton::clicked, this, [this, resultList, totalLbl, algoCmb]() {
         resultList->clear();
+        if (m_pathVisualizer) m_pathVisualizer->resetGraph();
         QString algo = algoCmb->currentText();
 
         if (algo == "MST (Prim\'s)") {
@@ -214,6 +264,8 @@ QWidget* mainwindow::buildPathViewerPage()
                 buf.setNodeStart(all.first());
                 for (const GraphEdge &e : mst) {
                     buf.setEdgePath(e.from, e.to);
+                    buf.setEdgePath(e.to, e.from);
+
                     buf.setNodePath(e.to);
                 }
                 m_pathVisualizer->playActions(buf, 60);
@@ -243,6 +295,8 @@ QWidget* mainwindow::buildPathViewerPage()
                 for (int i = 1; i < (int)r.visitOrder.size(); i++) {
                     const DFSEdge &e = r.visitOrder[i];
                     buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setEdgePath(QString::fromStdString(e.to), QString::fromStdString(e.from));
+
                     buf.setNodePath(QString::fromStdString(e.to));
                 }
                 m_pathVisualizer->playActions(buf, 80);
@@ -272,6 +326,8 @@ QWidget* mainwindow::buildPathViewerPage()
                 for (int i = 1; i < (int)r.visitOrder.size(); i++) {
                     const BFSEdge &e = r.visitOrder[i];
                     buf.setEdgePath(QString::fromStdString(e.from), QString::fromStdString(e.to));
+                    buf.setEdgePath(QString::fromStdString(e.to), QString::fromStdString(e.from));
+
                     buf.setNodePath(QString::fromStdString(e.to));
                 }
                 m_pathVisualizer->playActions(buf, 80);
